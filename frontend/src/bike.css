@@ -1,0 +1,245 @@
+/* Reset and Base Styles */
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  font-family: 'Poppins', sans-serif;
+  background-color: #f8f9fa;
+  color: #333;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Main Content Container */
+.bike-page {
+  flex: 1;
+  width: 100%;
+  padding: 20px;
+  padding-top: 100px; /* Adjusted for navbar */
+  padding-bottom: 60px;
+}
+
+/* Bike Grid Layout */
+.grid-container {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 30px;
+  padding: 20px;
+  width: 100%;
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+/* Bike Card Styles */
+.grid-item {
+  background: white;
+  border: none;
+  padding: 25px;
+  border-radius: 16px;
+  text-align: center;
+  font-size: 1rem;
+  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.05);
+  transition: all 0.3s ease;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  overflow: hidden;
+}
+
+.grid-item:hover {
+  transform: translateY(-8px);
+  box-shadow: 0 15px 30px rgba(0, 0, 0, 0.1);
+}
+
+.grid-item img {
+  width: 100%;
+  height: 200px;
+  object-fit: cover;
+  border-radius: 12px;
+  margin-bottom: 20px;
+  transition: transform 0.3s ease;
+}
+
+.grid-item:hover img {
+  transform: scale(1.05);
+}
+
+.grid-item h3 {
+  font-size: 1.2rem;
+  margin-bottom: 10px;
+  color: #2c3e50;
+}
+
+.price {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: #4e54c8;
+  margin: 10px 0;
+}
+
+.grid-item p {
+  color: #666;
+  margin: 5px 0;
+  font-size: 0.95rem;
+}
+
+/* Button Styles */
+.button-container {
+  display: flex;
+  gap: 10px;
+  margin-top: 20px;
+  width: 100%;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+
+.button {
+  background: linear-gradient(to right, #4e54c8, #8f94fb);
+  color: white;
+  padding: 10px 15px;
+  font-size: 0.9rem;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  font-weight: 600;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  flex: 1;
+  min-width: 100px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.button:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 6px 12px rgba(0, 0, 0, 0.15);
+}
+
+.cart-button {
+  background: linear-gradient(to right, #ff5e62, #ff9966);
+}
+
+.compare-button {
+  background: linear-gradient(to right, #00b09b, #96c93d);
+}
+
+/* Comparison Section */
+.comparison-container {
+  margin: 40px auto;
+  padding: 30px;
+  border-radius: 20px;
+  width: 95%;
+  max-width: 1200px;
+  background: white;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08);
+  text-align: center;
+  position: relative;
+  border-top: 5px solid #4e54c8;
+}
+
+.comparison-container h3 {
+  font-size: 1.8rem;
+  margin-bottom: 30px;
+  color: #2c3e50;
+}
+
+.comparison-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 30px;
+  margin-top: 20px;
+}
+
+.comparison-box {
+  background: #f9f9f9;
+  padding: 25px;
+  border-radius: 16px;
+  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.05);
+  transition: transform 0.3s ease;
+  border: 1px solid #eee;
+}
+
+.comparison-box:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.1);
+}
+
+.comparison-box img {
+  width: 100%;
+  height: 200px;
+  object-fit: cover;
+  border-radius: 12px;
+  margin-bottom: 20px;
+}
+
+.comparison-box h4 {
+  margin: 15px 0;
+  color: #2c3e50;
+  font-size: 1.3rem;
+}
+
+.comparison-box p {
+  margin: 10px 0;
+  color: #555;
+}
+
+.comparison-box p strong {
+  color: #2c3e50;
+}
+
+.clear-button {
+  margin-top: 30px;
+  background: linear-gradient(to right, #ff5e62, #ff9966);
+  color: white;
+  padding: 12px 30px;
+  font-size: 1rem;
+  border: none;
+  border-radius: 30px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  font-weight: 600;
+}
+
+.clear-button:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 6px 12px rgba(0, 0, 0, 0.15);
+}
+
+/* Footer Styles */
+.footer {
+  background: #2c3e50;
+  color: white;
+  padding: 30px 20px;
+  text-align: center;
+  margin-top: auto;
+}
+
+.footer-content {
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .bike-page {
+    padding-top: 90px;
+  }
+  
+  .grid-container {
+    grid-template-columns: 1fr;
+    padding: 10px;
+  }
+  
+  .button {
+    min-width: 100%;
+  }
+  
+  .comparison-container {
+    padding: 20px 15px;
+  }
+}

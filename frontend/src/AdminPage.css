@@ -1,0 +1,27 @@
+.bike-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 20px; /* Space between the cards */
+  justify-content: space-around; /* Evenly space the cards */
+}
+
+.bike-card {
+  width: 200px; /* Fixed width for each card */
+  padding: 10px;
+  border: 1px solid #ddd; /* Border for card */
+  border-radius: 8px; /* Rounded corners */
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1); /* Optional: Shadow effect */
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center; /* Ensure text is centered */
+  margin: 10px;
+}
+
+.button-container {
+  display: flex;
+  flex-direction: row; /* Align buttons horizontally */
+  justify-content: center; /* Center buttons */
+  gap: 10px; /* Space between buttons */
+  margin-top: 10px;
+}

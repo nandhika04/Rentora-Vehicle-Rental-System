@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Bike Rental Booking</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background-color: #f4f4f9;
+      margin: 0;
+      padding: 0;
+    }
+
+    h1 {
+      text-align: center;
+      color: #333;
+      margin-top: 50px;
+    }
+
+    .container {
+      width: 80%;
+      max-width: 600px;
+      margin: 50px auto;
+      background-color: white;
+      padding: 30px;
+      border-radius: 8px;
+      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    }
+
+    .form-group {
+      margin-bottom: 20px;
+    }
+
+    label {
+      font-size: 1.2em;
+      margin-bottom: 5px;
+      font-weight: bold;
+    }
+
+    select, input {
+      width: 100%;
+      padding: 8px;
+      margin-top: 5px;
+      font-size: 1em;
+      border: 1px solid #ddd;
+      border-radius: 5px;
+    }
+
+    button {
+      width: 100%;
+      padding: 12px;
+      background-color: #28a745;
+      color: white;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+      font-size: 1.2em;
+    }
+
+    button:hover {
+      background-color: #218838;
+    }
+
+    .output {
+      margin-top: 20px;
+      text-align: center;
+      font-size: 1.2em;
+      color: #333;
+    }
+
+    .loading {
+      color: #ff4500;
+    }
+  </style>
+</head>
+<body>
+
+  <h1>Bike Rental Booking</h1>
+
+  <div class="container">
+    <div class="form-group">
+      <label for="bike">Select a Bike:</label>
+      <select id="bike">
+        <option value="720">Yamaha MT 15 - ₹720 per day</option>
+        <option value="820">Triumph Tiger 1200 - ₹820 per day</option>
+        <option value="800">Ather Energy 450 - ₹800 per day</option>
+        <option value="700">Royal Enfield Hunter 350 - ₹700 per day</option>
+      </select>
+    </div>
+
+    <div class="form-group">
+      <label for="days">Number of Days:</label>
+      <input type="number" id="days" placeholder="Enter number of days" min="1">
+    </div>
+
+    <button onclick="bookBike()">Book Bike</button>
+
+    <div class="output" id="output"></div>
+  </div>
+
+  <script>
+    // Simulating an asynchronous function to simulate bike booking
+    const bookBikeAPI = (bikeId, days) => {
+      return new Promise((resolve, reject) => {
+        setTimeout(() => {
+          // Mock bike availability
+          const availableBikes = [720, 820, 800, 700];
+          if (availableBikes.includes(bikeId)) {
+            resolve(`Booking Confirmed! You have successfully booked the bike for ${days} day(s).`);
+          } else {
+            reject('Sorry, the selected bike is not available for booking at the moment.');
+          }
+        }, 1500); // Simulating network delay (1.5 seconds)
+      });
+    };
+
+    // Function to handle the booking process asynchronously
+    async function bookBike() {
+      const bikeSelect = document.getElementById("bike");
+      const selectedBikePrice = parseInt(bikeSelect.value);
+      const days = document.getElementById("days").value;
+
+      if (days === "" || days <= 0) {
+        document.getElementById("output").textContent = "Please enter a valid number of days.";
+        return;
+      }
+
+      // Display loading state while booking
+      document.getElementById("output").innerHTML = '<span class="loading">Booking in progress...</span>';
+
+      try {
+        // Call the asynchronous booking function
+        const bookingConfirmation = await bookBikeAPI(selectedBikePrice, days);
+        document.getElementById("output").textContent = bookingConfirmation;
+      } catch (error) {
+        document.getElementById("output").textContent = error;
+      }
+    }
+  </script>
+
+</body>
+</html>
