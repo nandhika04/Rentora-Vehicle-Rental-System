@@ -1,55 +1,67 @@
 import React, { useState, useEffect } from 'react';
 import './bike.css';
 import axios from 'axios';
-import Car from './Car';
-import Bform from './Bform';
-import Navbar from './Navbar';
+import { useNavigate } from 'react-router-dom';
 
 const BikeCard = ({ bike, onAddToCart, onBookNow, onCompare }) => {
+  const price = typeof bike.price === 'string' ? parseFloat(bike.price) : bike.price;
+
   return (
-    <div className="grid-item">
-      <img src={bike.image} alt={bike.name} />
-      <h3>{bike.name}</h3>
-      <span className="price">₹{bike.price}</span>
-      <p>Daily Limit: {bike.limit} km</p>
-      <p>Seats: {bike.seats}</p>
-      <p>Fuel Type: {bike.fuel}</p>
-      <div className="button-container">
-        <button className="button" onClick={onBookNow}>Book Now</button>
-        <button className="button cart-button" onClick={() => onAddToCart(bike)}>
-          Add to Cart
-        </button>
-        <button className="button compare-button" onClick={() => onCompare(bike)}>
-          Compare
-        </button>
+    <div className="bike-card">
+      <div className="bike-image-container">
+        <img src={bike.image} alt={bike.name} className="bike-image" />
+        <div className="bike-price">₹{price}/day</div>
+      </div>
+      <div className="bike-details">
+        <h3>{bike.name}</h3>
+        <div className="bike-specs">
+          <span><i className="fas fa-tachometer-alt"></i> {bike.limit} km/day</span>
+          <span><i className="fas fa-chair"></i> {bike.seats} seats</span>
+          <span><i className="fas fa-gas-pump"></i> {bike.fuel}</span>
+        </div>
+        <div className="bike-actions">
+          <button 
+            className="btn btn-primary" 
+            onClick={() => onBookNow(bike)}
+          >
+            Book Now
+          </button>
+          <button 
+            className="btn btn-secondary" 
+            onClick={() => onAddToCart({...bike, price})}
+          >
+            Add to Cart
+          </button>
+          <button className="btn btn-compare" onClick={() => onCompare(bike)}>
+            Compare
+          </button>
+        </div>
       </div>
     </div>
   );
 };
 
 const Bike = ({ onAddToCart }) => {
-  const [currentView, setCurrentView] = useState('bike');
-  const [dbBikes, setDbBikes] = useState([]);
+  const [bikes, setBikes] = useState([]);
   const [selectedBikes, setSelectedBikes] = useState([]);
-
-  const back = process.env.REACT_APP_BACKEND_URL;
+  const navigate = useNavigate();
+  const back = process.env.REACT_APP_BACKEND_URL || 'http://localhost:5000';
 
   useEffect(() => {
     const fetchBikes = async () => {
       try {
-        const response = await axios.get(back + '/api/bikes');
-        setDbBikes(response.data);
+        const response = await axios.get(`${back}/api/bikes`);
+        const bikesWithNumericPrices = response.data.map(bike => ({
+          ...bike,
+          price: typeof bike.price === 'string' ? parseFloat(bike.price) : bike.price
+        }));
+        setBikes(bikesWithNumericPrices);
       } catch (error) {
         console.error('Error fetching bikes:', error);
       }
     };
-
     fetchBikes();
   }, [back]);
-
-  const handleNavigate = (view) => {
-    setCurrentView(view);
-  };
 
   const handleCompare = (bike) => {
     setSelectedBikes(prev => {
@@ -66,52 +78,53 @@ const Bike = ({ onAddToCart }) => {
     setSelectedBikes([]);
   };
 
-  return (
-    <>
-      <Navbar />
-      <div className="bike-page">
-        {currentView === 'car' && <Car />}
-        {currentView === 'Bform' && <Bform />}
-        {currentView === 'bike' && (
-          <>
-            <div className="grid-container">
-              {dbBikes.map((bike) => (
-                <BikeCard
-                  key={bike._id}
-                  bike={bike}
-                  onAddToCart={onAddToCart}
-                  onBookNow={() => handleNavigate('Bform')}
-                  onCompare={handleCompare}
-                />
-              ))}
-            </div>
+  const handleBookNow = (bike) => {
+    navigate('/booking', { state: { bike } });
+  };
 
-            {selectedBikes.length > 0 && (
-              <div className="comparison-container">
-                <h3>Bike Comparison</h3>
-                <div className="comparison-grid">
-                  {selectedBikes.map((bike) => (
-                    <div key={bike._id} className="comparison-box">
-                      <img src={bike.image} alt={bike.name} />
-                      <h4>{bike.name}</h4>
-                      <p><strong>Price:</strong> ₹{bike.price}</p>
-                      <p><strong>Daily Limit:</strong> {bike.limit} km</p>
-                      <p><strong>Seats:</strong> {bike.seats}</p>
-                      <p><strong>Fuel Type:</strong> {bike.fuel}</p>
-                    </div>
-                  ))}
-                </div>
-                {selectedBikes.length === 2 && (
-                  <button className="clear-button" onClick={handleClearComparison}>
-                    Clear Comparison
-                  </button>
-                )}
-              </div>
-            )}
-          </>
-        )}
+  return (
+    <div className="bike-page">
+      <h1 className="page-title">Our Bike Collection</h1>
+      <p className="page-subtitle">Choose from our premium selection of bikes</p>
+      
+      <div className="bike-grid">
+        {bikes.map((bike) => (
+          <BikeCard
+            key={bike._id}
+            bike={bike}
+            onAddToCart={onAddToCart}
+            onBookNow={handleBookNow}
+            onCompare={handleCompare}
+          />
+        ))}
       </div>
-    </>
+
+      {selectedBikes.length > 0 && (
+        <div className="comparison-section">
+          <h2>Bike Comparison</h2>
+          <div className="comparison-grid">
+            {selectedBikes.map((bike) => (
+              <div key={bike._id} className="comparison-card">
+                <img src={bike.image} alt={bike.name} />
+                <h3>{bike.name}</h3>
+                <div className="comparison-details">
+                  <p><strong>Price:</strong> ₹{bike.price}/day</p>
+                  <p><strong>Daily Limit:</strong> {bike.limit} km</p>
+                  <p><strong>Seats:</strong> {bike.seats}</p>
+                  <p><strong>Fuel Type:</strong> {bike.fuel}</p>
+                </div>
+              </div>
+            ))}
+          </div>
+          <button 
+            className="btn btn-clear" 
+            onClick={handleClearComparison}
+          >
+            Clear Comparison
+          </button>
+        </div>
+      )}
+    </div>
   );
 };
 

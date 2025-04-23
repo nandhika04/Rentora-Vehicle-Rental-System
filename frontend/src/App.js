@@ -1,16 +1,16 @@
-// App.js
 import React, { useState } from 'react';
+import { ToastContainer } from 'react-toastify';
+import 'react-toastify/dist/ReactToastify.css';
 import {
   BrowserRouter as Router,
   Routes,
   Route,
-  Link,
   useLocation,
 } from 'react-router-dom';
-import './home.css';
-import bikeImage from './p.jpeg';
+import './App.css';
+import bikeImage from './bm.jpg';
 import carImage from './car.jpeg';
-import bgImage from './bg.jpg';
+import bgImage from './h.jpg';
 import Bike from './bike';
 import Car from './Car';
 import Cart from './Cart';
@@ -24,82 +24,73 @@ const MainApp = () => {
   const [cartItems, setCartItems] = useState([]);
 
   const handleAddToCart = (item) => {
-    const newItem = { ...item, id: item.id || Date.now() };
-    const price = parseFloat(item.price.replace(/[^\d.-]/g, ''));
-    setCartItems((prevItems) => [...prevItems, { ...newItem, price }]);
-    alert(`${item.name} has been added to the cart.`);
+    // Ensure price is always a number
+    const price = typeof item.price === 'string' ? 
+      parseFloat(item.price.replace(/[^\d.-]/g, '')) : 
+      item.price;
+    
+    const newItem = { 
+      ...item, 
+      id: item.id || Date.now(),
+      price: price
+    };
+    
+    setCartItems((prevItems) => [...prevItems, newItem]);
+    alert(`${item.name} has been added to your cart!`);
   };
 
   const handleRemoveItem = (itemToRemove) => {
     setCartItems((prevItems) =>
       prevItems.filter((item) => item.id !== itemToRemove.id)
     );
-    alert(`${itemToRemove.name} has been removed from the cart.`);
   };
 
   const location = useLocation();
   const isHomePage = location.pathname === '/';
 
   return (
-    <div
-      className="main-container"
-      style={{
-        backgroundImage: isHomePage ? `url(${bgImage})` : 'none',
-        backgroundSize: 'cover',
-        backgroundPosition: 'center',
-        minHeight: '100vh',
-        width: '100vw',
-        display: 'flex',
-        flexDirection: 'column',
-        alignItems: 'center',
-        justifyContent: 'flex-start',
-      }}
-    >
-      <Navbar />
-
-      <Routes>
-        <Route
-          path="/"
-          element={
-            <>
-              <div id="main1">
-                <div>RENTORA</div>
-                <div id="description">
-                  Your one-stop solution for convenient and flexible vehicle rentals.
-                </div>
-              </div>
-
-              <div id="container">
-                <div className="flex-container">
-                  <div className="vehicle bike">
-                    <Link to="/bike">
+    <div className={`app-container ${isHomePage ? 'home-bg' : ''}`}>
+      <Navbar cartCount={cartItems.length} />
+      
+      <main className="main-content">
+        <Routes>
+          <Route
+            path="/"
+            element={
+              <div className="hero-section">
+                <div className="hero-content">
+                  <h1>RENTORA</h1>
+                  <p className="hero-subtitle">
+                    Your premium vehicle rental experience
+                  </p>
+                  <div className="vehicle-selection">
+                    <div className="vehicle-card">
                       <img src={bikeImage} alt="Bike" />
-                      <span>Bike</span>
-                    </Link>
-                  </div>
-                  <div className="vehicle car">
-                    <Link to="/car">
+                      <a href="/bike" className="vehicle-link">Explore Bikes</a>
+                    </div>
+                    <div className="vehicle-card">
                       <img src={carImage} alt="Car" />
-                      <span>Car</span>
-                    </Link>
+                      <a href="/car" className="vehicle-link">Explore Cars</a>
+                    </div>
                   </div>
                 </div>
               </div>
-            </>
-          }
-        />
-        <Route path="/bike" element={<Bike onAddToCart={handleAddToCart} />} />
-        <Route path="/car" element={<Car onAddToCart={handleAddToCart} />} />
-        <Route path="/registration" element={<RegistrationForm />} />
-        <Route path="/admin" element={<AdminPage />} />
-        <Route path="/booking" element={<Bform />} />
-        <Route
-          path="/cart"
-          element={<Cart cartItems={cartItems} onRemoveItem={handleRemoveItem} />}
-        />
-      </Routes>
+            }
+          />
+          <Route path="/bike" element={<Bike onAddToCart={handleAddToCart} />} />
+          <Route path="/car" element={<Car onAddToCart={handleAddToCart} />} />
+          <Route path="/registration" element={<RegistrationForm />} />
+          <Route path="/admin" element={<AdminPage />} />
+          <Route path="/booking" element={<Bform />} />
+          <Route
+            path="/cart"
+            element={<Cart cartItems={cartItems} onRemoveItem={handleRemoveItem} />}
+          />
+        </Routes>
+      </main>
 
       <ContactUs />
+      <ToastContainer position="bottom-right" autoClose={5000} />
     </div>
   );
 };

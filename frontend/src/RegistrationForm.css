@@ -1,64 +1,107 @@
-/* RegistrationForm.css */
-body {
-  font-family: Arial, sans-serif;
-  background-color: #c8c0cc;
+.registration-page {
+  min-height: 100vh;
   display: flex;
-  justify-content: center;
   align-items: center;
-  height: 100vh;
-  margin: 0;
+  justify-content: center;
+  background: #f5f7fa;
+  padding: 2rem;
+}
+
+.registration-card {
+  background: white;
+  border-radius: 1rem;
+  padding: 2.5rem;
   width: 100%;
-}
-
-.form-container {
-  background-color: #dcdcdc;
-  padding: 20px;
-  border-radius: 5px;
-  box-shadow: 0px 0px 10px rgba(0, 0, 0, 0.1);
-  width: 450px;
-  height: 80vh;
-}
-
-form h2 {
+  max-width: 500px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
   text-align: center;
-  margin-bottom: 20px;
 }
 
-label {
-  font-weight: bold;
-  margin-top: 10px;
+.registration-card h2 {
+  color: var(--primary-color);
+  margin-bottom: 0.5rem;
+}
+
+.subtitle {
+  color: #666;
+  margin-bottom: 2rem;
+}
+
+.form-group {
+  margin-bottom: 1.5rem;
+  text-align: left;
+}
+
+.form-group label {
   display: block;
+  margin-bottom: 0.5rem;
+  font-weight: 500;
+  color: var(--dark-color);
 }
 
-input[type="text"],
-input[type="email"],
-input[type="password"] {
+.form-group input {
   width: 100%;
-  padding: 10px;
-  margin: 10px 0;
-  border: 1px solid #ccc;
-  border-radius: 4px;
-  box-sizing: border-box;
+  padding: 0.8rem 1rem;
+  border: 1px solid #ddd;
+  border-radius: 0.5rem;
+  font-size: 1rem;
+  transition: all 0.3s ease;
 }
 
-button {
-  padding: 10px;
-  width: 100%;
-  background-color: #555;
-  color: white;
-  border: none;
-  border-radius: 4px;
-  cursor: pointer;
-  margin-top: 10px;
-}
-
-button:hover {
-  background-color: #333;
+.form-group input:focus {
+  outline: none;
+  border-color: var(--primary-color);
+  box-shadow: 0 0 0 3px rgba(67, 97, 238, 0.2);
 }
 
 .error-message {
-  color: red;
-  font-size: 12px;
-  margin-top: -5px;
-  margin-bottom: 10px;
+  color: var(--danger-color);
+  background: rgba(247, 37, 133, 0.1);
+  padding: 0.8rem;
+  border-radius: 0.5rem;
+  margin-bottom: 1.5rem;
+  font-size: 0.9rem;
+}
+
+.btn-primary {
+  width: 100%;
+  padding: 1rem;
+  background: var(--primary-color);
+  color: white;
+  border: none;
+  border-radius: 0.5rem;
+  font-weight: 500;
+  font-size: 1rem;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.btn-primary:hover {
+  background: var(--secondary-color);
+}
+
+.btn-primary:disabled {
+  background: #ccc;
+  cursor: not-allowed;
+}
+
+.login-link {
+  margin-top: 1.5rem;
+  color: #666;
+}
+
+.login-link a {
+  color: var(--primary-color);
+  text-decoration: none;
+  font-weight: 500;
+}
+
+.login-link a:hover {
+  text-decoration: underline;
+}
+
+@media (max-width: 576px) {
+  .registration-card {
+    padding: 1.5rem;
+  }
 }

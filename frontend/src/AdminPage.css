@@ -1,27 +1,209 @@
-.bike-list {
+.admin-page {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 2rem;
+}
+
+.admin-title {
+  text-align: center;
+  color: var(--primary-color);
+  margin-bottom: 2rem;
+}
+
+.admin-container {
+  display: grid;
+  grid-template-columns: 1fr 2fr;
+  gap: 2rem;
+}
+
+.admin-form {
+  background: white;
+  padding: 2rem;
+  border-radius: 1rem;
+  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+  position: sticky;
+  top: 1rem;
+}
+
+.admin-form h2 {
+  color: var(--primary-color);
+  margin-bottom: 1.5rem;
+  text-align: center;
+}
+
+.form-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+}
+
+.form-group {
+  margin-bottom: 1rem;
+}
+
+.form-group label {
+  display: block;
+  margin-bottom: 0.5rem;
+  font-weight: 500;
+  color: var(--dark-color);
+}
+
+.form-group input {
+  width: 100%;
+  padding: 0.8rem;
+  border: 1px solid #ddd;
+  border-radius: 0.5rem;
+  font-size: 1rem;
+}
+
+.form-group input:focus {
+  outline: none;
+  border-color: var(--primary-color);
+}
+
+.form-actions {
   display: flex;
-  flex-wrap: wrap;
-  gap: 20px; /* Space between the cards */
-  justify-content: space-around; /* Evenly space the cards */
+  gap: 1rem;
+  margin-top: 1.5rem;
+}
+
+.btn {
+  padding: 0.8rem 1.5rem;
+  border: none;
+  border-radius: 0.5rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.btn-primary {
+  background: var(--primary-color);
+  color: white;
+  flex: 1;
+}
+
+.btn-primary:hover {
+  background: var(--secondary-color);
+  transform: translateY(-2px);
+}
+
+.btn-secondary {
+  background: #f0f0f0;
+  color: var(--dark-color);
+  flex: 1;
+}
+
+.btn-secondary:hover {
+  background: #e0e0e0;
+}
+
+.bike-list-container {
+  background: white;
+  padding: 2rem;
+  border-radius: 1rem;
+  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+}
+
+.bike-list-container h2 {
+  color: var(--primary-color);
+  margin-bottom: 1.5rem;
+}
+
+.no-bikes {
+  text-align: center;
+  color: #666;
+  padding: 2rem;
+}
+
+.bike-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 1.5rem;
 }
 
 .bike-card {
-  width: 200px; /* Fixed width for each card */
-  padding: 10px;
-  border: 1px solid #ddd; /* Border for card */
-  border-radius: 8px; /* Rounded corners */
-  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1); /* Optional: Shadow effect */
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  text-align: center; /* Ensure text is centered */
-  margin: 10px;
+  background: #f8f9fa;
+  border-radius: 0.8rem;
+  overflow: hidden;
+  transition: all 0.3s ease;
 }
 
-.button-container {
+.bike-card:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+}
+
+.bike-card-header {
+  padding: 1rem;
+  text-align: center;
+}
+
+.bike-card-header img {
+  width: 100%;
+  height: 150px;
+  object-fit: cover;
+  border-radius: 0.5rem;
+  margin-bottom: 1rem;
+}
+
+.bike-card-header h3 {
+  color: var(--primary-color);
+  margin-bottom: 0.5rem;
+}
+
+.bike-card-details {
+  padding: 0 1rem 1rem;
+}
+
+.bike-card-details p {
+  margin-bottom: 0.5rem;
   display: flex;
-  flex-direction: row; /* Align buttons horizontally */
-  justify-content: center; /* Center buttons */
-  gap: 10px; /* Space between buttons */
-  margin-top: 10px;
+  justify-content: space-between;
+}
+
+.bike-card-details span {
+  font-weight: 500;
+  color: var(--dark-color);
+}
+
+.bike-card-actions {
+  display: flex;
+  padding: 1rem;
+  border-top: 1px solid #eee;
+}
+
+.btn-edit {
+  background: var(--warning-color);
+  color: white;
+  flex: 1;
+  margin-right: 0.5rem;
+}
+
+.btn-edit:hover {
+  background: #e07e0f;
+}
+
+.btn-delete {
+  background: var(--danger-color);
+  color: white;
+  flex: 1;
+  margin-left: 0.5rem;
+}
+
+.btn-delete:hover {
+  background: #e5176d;
+}
+
+@media (max-width: 768px) {
+  .admin-container {
+    grid-template-columns: 1fr;
+  }
+  
+  .form-row {
+    grid-template-columns: 1fr;
+  }
+  
+  .admin-form {
+    position: static;
+  }
 }

@@ -1,142 +1,132 @@
 import React, { useState } from 'react';
-import './RegistrationForm.css';
-import AddBike from './components/AddBike';
-import axios from 'axios';
-import AdminPage from './AdminPage';
 import { useNavigate } from 'react-router-dom';
-
+import './RegistrationForm.css';
+import axios from 'axios';
 
 const RegistrationForm = () => {
-  
+  const [formData, setFormData] = useState({
+    username: '',
+    email: '',
+    password: '',
+    confirmPassword: ''
+  });
+  const [error, setError] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
+  const navigate = useNavigate();
   const back = process.env.REACT_APP_BACKEND_URL;
 
-  const navigate = useNavigate();
-
-  const [username,setUserName] = useState('');
-  const [email,setEmail] = useState('');
-  const [password,setPassword] = useState('');
-  const [confirmPassword,setConfirmPassword] = useState('');
-
-  const [error, setError] = useState(null);
-
-  const [isSubmitted, setIsSubmitted] = useState(false);
-  const [apiError, setApiError] = useState('');
-
-
-
+  const handleChange = (e) => {
+    const { name, value } = e.target;
+    setFormData(prev => ({
+      ...prev,
+      [name]: value
+    }));
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    setIsLoading(true);
+    setError('');
 
-    if (!username) {
-      setError("Please enter the Username.");
+    // Basic validation
+    if (!formData.username || !formData.email || !formData.password || !formData.confirmPassword) {
+      setError('All fields are required');
+      setIsLoading(false);
       return;
     }
 
-    if (!email) {
-      setError("Please enter a valid Email address.");
+    if (formData.password !== formData.confirmPassword) {
+      setError('Passwords do not match');
+      setIsLoading(false);
       return;
     }
 
-    if (!password) {
-      setError("Please enter the password.");
-      return;
-    }
-
-    if (!confirmPassword) {
-      setError("Please enter the Confirm Password.");
-      return;
-    }
-
-    setError("");
-
-    // Registration API call
     try {
-      const response = await axios.post(`${back}/register`, {
-        username: username,
-        email: email,
-        password: password,
-        confirmPassword: confirmPassword,
-      });
-
-      if (response.data && response.data.error) {
+      const response = await axios.post(`${back}/register`, formData);
+      
+      if (response.data.error) {
         setError(response.data.message);
-        return;
-      }
-
-      if (email === "admin@gmail.com" && password === "admin123") {
-        console.log("It's Admin");
-        navigate("/admin"); // Use navigate to route to AdminPage
       } else {
-        if (response.data) {
-          navigate("/"); // Navigate to home page
-          console.log("Created an account...");
+        // Check if admin login
+        if (formData.email === "admin@gmail.com") {
+          navigate("/admin");
+        } else {
+          navigate("/");
         }
       }
-    } catch (error) {
-      // Handle registration error
-      if (error.response && error.response.data && error.response.data.message) {
-        setError(error.response.data.message);
-      } else {
-        setError("An unexpected error occurred. Please try again.");
-      }
+    } catch (err) {
+      setError(err.response?.data?.message || 'Registration failed. Please try again.');
+    } finally {
+      setIsLoading(false);
     }
   };
 
   return (
-    <div className="form-container">
-      {isSubmitted ? (
-        <AddBike />
-      ) : (
+    <div className="registration-page">
+      <div className="registration-card">
+        <h2>Create an Account</h2>
+        <p className="subtitle">Join us to start renting vehicles</p>
+        
+        {error && <div className="error-message">{error}</div>}
+        
         <form onSubmit={handleSubmit}>
-          <h2>Registration Form</h2>
-
-          {/* {apiError && <div className="error-message api-error">{apiError}</div>} */}
-
-          <label htmlFor="username">User Name</label>
-          <input
-            type="text"
-            id="username"
-            name="username"
-            value={username}
-            onChange={(e) => setUserName(e.target.value)}
-            placeholder="Enter User Name"
-          />
-
-          <label htmlFor="email">Email</label>
-          <input
-            type="email"
-            id="email"
-            name="email"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            placeholder="Enter email"
-          />
-
-          <label htmlFor="password">Password</label>
-          <input
-            type="password"
-            id="password"
-            name="password"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            placeholder="Enter the password"
-          />
-
-          <label htmlFor="confirmPassword">Confirm Password</label>
-          <input
-            type="password"
-            id="confirmPassword"
-            name="confirmPassword"
-            value={confirmPassword}
-            onChange={(e) => setConfirmPassword(e.target.value)}
-            placeholder="Enter Confirm password"
-          />
-          {error && <div className="error-message">{error}</div>}
-
-          <button type="submit">Submit</button>
+          <div className="form-group">
+            <label>Username</label>
+            <input
+              type="text"
+              name="username"
+              value={formData.username}
+              onChange={handleChange}
+              placeholder="Enter your username"
+            />
+          </div>
+          
+          <div className="form-group">
+            <label>Email</label>
+            <input
+              type="email"
+              name="email"
+              value={formData.email}
+              onChange={handleChange}
+              placeholder="Enter your email"
+            />
+          </div>
+          
+          <div className="form-group">
+            <label>Password</label>
+            <input
+              type="password"
+              name="password"
+              value={formData.password}
+              onChange={handleChange}
+              placeholder="Create a password"
+            />
+          </div>
+          
+          <div className="form-group">
+            <label>Confirm Password</label>
+            <input
+              type="password"
+              name="confirmPassword"
+              value={formData.confirmPassword}
+              onChange={handleChange}
+              placeholder="Confirm your password"
+            />
+          </div>
+          
+          <button 
+            type="submit" 
+            className="btn btn-primary"
+            disabled={isLoading}
+          >
+            {isLoading ? 'Creating Account...' : 'Create Account'}
+          </button>
         </form>
-      )}
+        
+        <p className="login-link">
+          Already have an account? <a href="/login">Log in</a>
+        </p>
+      </div>
     </div>
   );
 };
