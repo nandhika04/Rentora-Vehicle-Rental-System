@@ -2,15 +2,29 @@ import React, { useState, useEffect } from 'react';
 import './bike.css';
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
+import { scoreBike, updatePreferences } from './utils/preferences';
+import SmartAssistant from './components/SmartAssistant';
 
-const BikeCard = ({ bike, onAddToCart, onBookNow, onCompare }) => {
+import { useFavorites } from './context/FavoritesContext';
+
+const BikeCard = ({ bike, onAddToCart, onBookNow, onCompare, smartDeal }) => {
   const price = typeof bike.price === 'string' ? parseFloat(bike.price) : bike.price;
+  const { isFavorited, toggleFavorite } = useFavorites();
 
   return (
     <div className="bike-card">
       <div className="bike-image-container">
         <img src={bike.image} alt={bike.name} className="bike-image" />
         <div className="bike-price">₹{price}/day</div>
+        {smartDeal && <div className="smart-deal-badge">Smart Deal</div>}
+        <button
+          className={`fav-button ${isFavorited(bike._id) ? 'active' : ''}`}
+          onClick={(e) => { e.stopPropagation(); toggleFavorite({ ...bike, price }); }}
+          aria-label="Toggle favorite"
+          title={isFavorited(bike._id) ? 'Remove from wishlist' : 'Add to wishlist'}
+        >
+          {isFavorited(bike._id) ? '♥' : '♡'}
+        </button>
       </div>
       <div className="bike-details">
         <h3>{bike.name}</h3>
@@ -51,7 +65,10 @@ const Bike = ({ onAddToCart }) => {
     const fetchBikes = async () => {
       try {
         const response = await axios.get(`${back}/api/bikes`);
-        const bikesWithNumericPrices = response.data.map(bike => ({
+        const bikesWithNumericPrices = response.data
+          // Ensure only bike-shaped entries appear (defensive in case backend shares collection)
+          .filter(b => b && !b.transmission && !b.type)
+          .map(bike => ({
           ...bike,
           price: typeof bike.price === 'string' ? parseFloat(bike.price) : bike.price
         }));
@@ -79,6 +96,7 @@ const Bike = ({ onAddToCart }) => {
   };
 
   const handleBookNow = (bike) => {
+    updatePreferences({ fuel: bike.fuel, seats: String(bike.seats) });
     navigate('/booking', { state: { bike } });
   };
 
@@ -88,15 +106,25 @@ const Bike = ({ onAddToCart }) => {
       <p className="page-subtitle">Choose from our premium selection of bikes</p>
       
       <div className="bike-grid">
-        {bikes.map((bike) => (
-          <BikeCard
-            key={bike._id}
-            bike={bike}
-            onAddToCart={onAddToCart}
-            onBookNow={handleBookNow}
-            onCompare={handleCompare}
-          />
-        ))}
+        {(() => {
+          const prices = bikes.map(b => Number(b.price) || 0).filter(n => n > 0).sort((a, b) => a - b);
+          const p25Index = Math.floor(prices.length * 0.25);
+          const p25 = prices.length ? prices[p25Index] : Infinity;
+
+          return bikes
+            .map(b => ({ ...b, __score: scoreBike(b) }))
+            .sort((a, b) => b.__score - a.__score)
+            .map((bike) => (
+              <BikeCard
+                key={bike._id}
+                bike={bike}
+                onAddToCart={onAddToCart}
+                onBookNow={handleBookNow}
+                onCompare={handleCompare}
+                smartDeal={(Number(bike.price) || 0) <= p25}
+              />
+            ));
+        })()}
       </div>
 
       {selectedBikes.length > 0 && (
@@ -124,6 +152,7 @@ const Bike = ({ onAddToCart }) => {
           </button>
         </div>
       )}
+      <SmartAssistant items={bikes} kind="bike" onBook={handleBookNow} />
     </div>
   );
 };

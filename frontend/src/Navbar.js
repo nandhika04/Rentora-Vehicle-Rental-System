@@ -20,6 +20,7 @@ const Navbar = ({ cartCount }) => {
       
       <div className="navbar-actions">
         <Link to="/registration" className="nav-button">Login</Link>
+        <Link to="/wishlist" className="nav-button">Wishlist</Link>
         <Link to="/cart" className="nav-button cart-button">
           Cart {cartCount > 0 && <span className="cart-badge">{cartCount}</span>}
         </Link>

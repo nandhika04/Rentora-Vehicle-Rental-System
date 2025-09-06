@@ -1,14 +1,12 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import './RegistrationForm.css';
 import axios from 'axios';
+import './LoginForm.css'; // Create this CSS file for styling
 
-const RegistrationForm = () => {
+const LoginForm = () => {
   const [formData, setFormData] = useState({
-    username: '',
     email: '',
-    password: '',
-    confirmPassword: ''
+    password: ''
   });
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -29,27 +27,14 @@ const RegistrationForm = () => {
     setError('');
 
     // Basic validation
-    if (!formData.username || !formData.email || !formData.password || !formData.confirmPassword) {
-      setError('All fields are required');
-      setIsLoading(false);
-      return;
-    }
-
-    if (formData.password !== formData.confirmPassword) {
-      setError('Passwords do not match');
-      setIsLoading(false);
-      return;
-    }
-
-    if (formData.password.length < 6) {
-      setError('Password must be at least 6 characters');
+    if (!formData.email || !formData.password) {
+      setError('Email and password are required');
       setIsLoading(false);
       return;
     }
 
     try {
-      const response = await axios.post(`${back}/register`, {
-        username: formData.username,
+      const response = await axios.post(`${back}/login`, {
         email: formData.email,
         password: formData.password
       });
@@ -57,41 +42,33 @@ const RegistrationForm = () => {
       if (response.data.error) {
         setError(response.data.message);
       } else {
+        // Store the token in localStorage or context
+        localStorage.setItem('token', response.data.token);
+        localStorage.setItem('user', JSON.stringify(response.data.user));
+        
         // Check if admin login
         if (formData.email === "admin@gmail.com") {
-          navigate("/admin");
+          navigate("/admindashboard");
         } else {
-          navigate("/login"); // Redirect to login after successful registration
+          navigate("/");
         }
       }
     } catch (err) {
-      setError(err.response?.data?.message || 'Registration failed. Please try again.');
+      setError(err.response?.data?.message || 'Login failed. Please try again.');
     } finally {
       setIsLoading(false);
     }
   };
 
   return (
-    <div className="registration-page">
-      <div className="registration-card">
-        <h2>Create an Account</h2>
-        <p className="subtitle">Join us to start renting vehicles</p>
+    <div className="login-page">
+      <div className="login-card">
+        <h2>Login to Your Account</h2>
+        <p className="subtitle">Welcome back! Please enter your details</p>
         
         {error && <div className="error-message">{error}</div>}
         
         <form onSubmit={handleSubmit}>
-          <div className="form-group">
-            <label>Username</label>
-            <input
-              type="text"
-              name="username"
-              value={formData.username}
-              onChange={handleChange}
-              placeholder="Enter your username"
-              required
-            />
-          </div>
-          
           <div className="form-group">
             <label>Email</label>
             <input
@@ -111,20 +88,7 @@ const RegistrationForm = () => {
               name="password"
               value={formData.password}
               onChange={handleChange}
-              placeholder="Create a password (min 6 characters)"
-              required
-              minLength="6"
-            />
-          </div>
-          
-          <div className="form-group">
-            <label>Confirm Password</label>
-            <input
-              type="password"
-              name="confirmPassword"
-              value={formData.confirmPassword}
-              onChange={handleChange}
-              placeholder="Confirm your password"
+              placeholder="Enter your password"
               required
               minLength="6"
             />
@@ -135,16 +99,16 @@ const RegistrationForm = () => {
             className="btn btn-primary"
             disabled={isLoading}
           >
-            {isLoading ? 'Creating Account...' : 'Create Account'}
+            {isLoading ? 'Logging in...' : 'Login'}
           </button>
         </form>
         
-        <p className="login-link">
-          Already have an account? <a href="/login">Log in</a>
+        <p className="signup-link">
+          Don't have an account? <a href="/registration">Sign up</a>
         </p>
       </div>
     </div>
   );
 };
 
-export default RegistrationForm;
+export default LoginForm;

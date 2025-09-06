@@ -5,6 +5,11 @@ import './bform.css';
 const Bform = () => {
   const location = useLocation();
   const bikeFromLocation = location.state?.bike;
+  const carFromLocation = location.state?.vehicle;
+  const vehicleTypeFromLocation = location.state?.type;
+  const isCar = vehicleTypeFromLocation === 'car' || (!!carFromLocation && !bikeFromLocation);
+
+  const selectedVehicle = bikeFromLocation || carFromLocation;
   
   const [formValues, setFormValues] = useState({
     pickupDate: '',
@@ -16,11 +21,11 @@ const Bform = () => {
   const [errors, setErrors] = useState({});
   const [isSubmitted, setIsSubmitted] = useState(false);
   const [estimatedCost, setEstimatedCost] = useState(null);
-  const [bikeDetails, setBikeDetails] = useState(
-    bikeFromLocation || {
-      name: 'Royal Enfield Classic 350',
-      price: 1500,
-      image: 'https://example.com/bike.jpg'
+  const [bikeDetails] = useState(
+    selectedVehicle || {
+      name: isCar ? 'Sample Car' : 'Royal Enfield Classic 350',
+      price: isCar ? 3500 : 1500,
+      image: 'https://via.placeholder.com/300x200?text=Vehicle'
     }
   );
 
@@ -63,41 +68,36 @@ const Bform = () => {
     return isValid;
   };
 
-  const calculateCost = () => {
-    const pickupDateTime = new Date(`${formValues.pickupDate}T${formValues.pickupTime}`);
-    const dropoffDateTime = new Date(`${formValues.dropoffDate}T${formValues.dropoffTime}`);
-
-    if (pickupDateTime >= dropoffDateTime) {
-      setEstimatedCost(null);
-      return;
-    }
-
-    const diffInMs = dropoffDateTime - pickupDateTime;
-    const diffInDays = Math.ceil(diffInMs / (1000 * 60 * 60 * 24));
-    const cost = diffInDays * RATE_PER_DAY;
-    setEstimatedCost(cost);
-  };
-
   useEffect(() => {
     if (formValues.pickupDate && formValues.pickupTime && 
         formValues.dropoffDate && formValues.dropoffTime) {
-      calculateCost();
+      const pickupDateTime = new Date(`${formValues.pickupDate}T${formValues.pickupTime}`);
+      const dropoffDateTime = new Date(`${formValues.dropoffDate}T${formValues.dropoffTime}`);
+
+      if (pickupDateTime >= dropoffDateTime) {
+        setEstimatedCost(null);
+        return;
+      }
+
+      const diffInMs = dropoffDateTime - pickupDateTime;
+      const diffInDays = Math.ceil(diffInMs / (1000 * 60 * 60 * 24));
+      const cost = diffInDays * RATE_PER_DAY;
+      setEstimatedCost(cost);
     } else {
       setEstimatedCost(null);
     }
-  }, [formValues]);
+  }, [formValues, RATE_PER_DAY]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (validateForm()) {
-      // Simulate API call
       await new Promise(resolve => setTimeout(resolve, 1000));
       setIsSubmitted(true);
     }
   };
 
   const handleReset = () => {
-    navigate('/bike');
+    navigate(isCar ? '/car' : '/bike');
   };
 
   return (
@@ -140,7 +140,7 @@ const Bform = () => {
             </p>
             
             <button className="btn btn-primary" onClick={handleReset}>
-              Book Another Bike
+              {isCar ? 'Book Another Car' : 'Book Another Bike'}
             </button>
           </div>
         </div>

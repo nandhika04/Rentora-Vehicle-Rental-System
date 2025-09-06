@@ -16,6 +16,7 @@ const AdminPage = () => {
   const [editing, setEditing] = useState(false);
   const back = process.env.REACT_APP_BACKEND_URL || 'http://localhost:5000';
 
+  // Fetch bikes on mount
   useEffect(() => {
     const fetchBikes = async () => {
       try {
@@ -86,6 +87,7 @@ const AdminPage = () => {
       <h1 className="admin-title">Bike Management</h1>
 
       <div className="admin-container">
+        {/* Form */}
         <form
           onSubmit={editing ? handleUpdateBike : handleAddBike}
           className="admin-form"
@@ -175,6 +177,7 @@ const AdminPage = () => {
           </div>
         </form>
 
+        {/* Bike List */}
         <div className="bike-list-container">
           <h2>Current Bike Inventory</h2>
           {bikes.length === 0 ? (
@@ -215,7 +218,6 @@ const AdminPage = () => {
       </div>
     </div>
   );
-  // ... rest of your AdminPage component code remains the same ...
 };
 
 export default AdminPage;

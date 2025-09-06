@@ -1,132 +1,113 @@
-// import React, { useState } from 'react'; // Import React and useState
-// import './bike.css'; // Import the CSS file for styles
-// import yamaha from './tc.webp'; // Import images
-// import bike from './md.webp';
-// import triumph from './ms.webp';
-// import ather from './hc.webp';
-// import honda from './mb.webp';
-// import keeway from './tf.webp';
-// import bmw from './mfx.webp';
-// import m from './tp.webp';
-// import hero from './tn.webp';
-// import baj from './tp.webp';
-// import Car from './Car'; 
-// import Bform from './Bform'; 
+import React, { useState, useEffect } from 'react';
+import './bike.css';
+import axios from 'axios';
+import { useNavigate } from 'react-router-dom';
+import CarCard from './CarCard';
+import { scoreCar } from './utils/preferences';
+import SmartAssistant from './components/SmartAssistant';
 
-// const Bike = () => {
-//   const [currentView, setCurrentView] = useState('bike'); // State to manage the current view
+const CarsPage = ({ onAddToCart }) => {
+  const [cars, setCars] = useState([]);
+  const [selectedCars, setSelectedCars] = useState([]);
+  const navigate = useNavigate();
+  const back = process.env.REACT_APP_BACKEND_URL || 'http://localhost:5000';
 
-//   const handleNavigate = (view) => {
-//     setCurrentView(view); // Change the current view based on button clicks
-//   };
+  useEffect(() => {
+    const fetchCars = async () => {
+      try {
+        const response = await axios.get(`${back}/api/cars`);
+        const carsWithNumericPrices = response.data
 
-//   return (
-//     <div className="bike-page">
-//         {currentView === 'car' && <Car />} 
-//         {currentView === 'Bform' && <Bform />} 
-//       {currentView === 'bike' && (
-//         <>
-//           <div className="grid-container">
-//             <div className="grid-item1">
-//               <img src={yamaha} height="100" width="200" alt="Yamaha MT 15" /><br />
-//               <span className="one">RIDE WITH NEW TATA CURVV</span><br />
-//               <span className="price">₹1880 per day</span><br />
-//               100km limit<br />
-             
-//               3 Seater<br />
-//               Fuel Excluded<br />
-//               <button className="button" onClick={() => handleNavigate('Bform')}>Book Now!</button>
-//             </div>
-//             <div className="grid-item">
-//               <img src={bike} height="100" width="200" alt="Royal Enfield Hunter 350" /><br />
-//               Maruti Dzire<br />
-//               <span className="price">₹1030 per day</span><br />
-//               100km limit<br />
-             
-//               4 Seater<br />
-//               Fuel Excluded<br />
-//               <button className="button" onClick={() => handleNavigate('Bform')}>Book Now!</button>
-//             </div>
-//             <div className="grid-item">
-//               <img src={triumph} height="100" width="200" alt="Triumph Tiger 1200" /><br />
-//             Maruti Swift<br />
-//             <span className="price">₹1400 per day</span><br />
-//               100km limit<br />
-//               4 Seater<br />
-//               Fuel Excluded<br />
-//               <button className="button" onClick={() => handleNavigate('Bform')}>Book Now!</button>
-//             </div>
-//             <div className="grid-item">
-//               <img src={ather} height="100" width="200" alt="Ather Energy 450" /><br />
-//               Hyundai Creta<br />
-//               <span className="price">₹1300 per day</span><br />
-//               100km limit<br />
+          .filter(car => car && car.transmission && car.type)
+          .map(car => ({
+          ...car,
+          price: typeof car.price === 'string' ? parseFloat(car.price) : car.price
+        }));
+        setCars(carsWithNumericPrices);
+      } catch (error) {
+        console.error('Error fetching cars:', error);
+      }
+    };
+    fetchCars();
+  }, [back]);
 
-//               4 Seater<br />
-//               Fuel Excluded<br />
-//               <button className="button" onClick={() => handleNavigate('Bform')}>Book Now!</button>
-//             </div>
-//             <div className="grid-item">
-//               <img src={honda} height="100" width="200" alt="Honda CB300F" /><br />
-//               Honda CB300F<br />
-//               <span className="price">₹1880 per day</span><br />
-//               100km limit<br />
-//               2 Seater<br />
-//               Fuel Excluded<br />
-//               <button className="button" onClick={() => handleNavigate('Bform')}>Book Now!</button>
-//             </div>
-//             <div className="grid-item">
-//               <img src={keeway} height="100" width="200" alt="Keeway Vieste 300" /><br />
-//               Maruti Brezza<br />
-//               <span className="price">₹2080 per day</span><br />
-//               100km limit<br />
-//               6 Seater<br />
-//               Fuel Excluded<br />
-//               <button className="button" onClick={() => handleNavigate('Bform')}>Book Now!</button>
-//             </div>
-//             <div className="grid-item">
-//               <img src={m} height="100" width="200" alt="Maisto 2021 Yamaha" /><br />
-//               Toyota Fortuner<br />
-//               <span className="price">₹1580 per day</span><br />
-//               100km limit<br />
-//               2 Seater<br />
-//               Fuel Excluded<br />
-//               <button className="button" onClick={() => handleNavigate('Bform')}>Book Now!</button>
-//             </div>
-//             <div className="grid-item">
-//               <img src={hero} height="100" width="200" alt="Hero Glamour 125" /><br />
-//               Maruti FRONX<br />
-//               <span className="price">₹1480 per day</span><br />
-//               100km limit<br />
-//               2 Seater<br />
-//               Fuel Excluded<br />
-//               <button className="button" onClick={() => handleNavigate('Bform')}>Book Now!</button>
-//             </div>
-//             <div className="grid-item">
-//               <img src={baj} height="100" width="200" alt="Bajaj Pulsar" /><br />
-//               Tata Punch<br />
-//               <span className="price">₹1870 per day</span><br />
-//               100km limit<br />
-//               2 Seater<br />
-//               Fuel Excluded<br />
-//               <button className="button" onClick={() => handleNavigate('Bform')}>Book Now!</button>
-//             </div>
-//             <div className="grid-item9">
-//               <img src={bmw} height="100" width="200" alt="BMW G 310 RR" /><br />
-//               <span className="one">RIDE WITH NEW TATA NEXON</span><br />
-//               <span className="price">₹1880 per day</span><br />
-//               100km limit<br />
-//               2 Seater<br />
-//               Fuel Excluded<br />
-//               <button className="button" onClick={() => handleNavigate('Bform')}>Book Now!</button>
-//             </div>
-//           </div>
-//         </>
-//       )}
+  const handleCompare = (car) => {
+    setSelectedCars(prev => {
+      if (prev.find(c => c._id === car._id)) return prev;
+      if (prev.length >= 2) {
+        alert('You can compare only 2 cars at a time');
+        return prev;
+      }
+      return [...prev, car];
+    });
+  };
 
-//       {currentView === 'car' && <Car />} {/* Render the Car component if the view is 'car' */}
-//     </div>
-//   );
-// };
+  const handleClearComparison = () => {
+    setSelectedCars([]);
+  };
 
-// export default Bike;
+  const handleBookNow = (car) => {
+    navigate('/booking', { state: { vehicle: car, type: 'car' } });
+  };
+
+  return (
+    <div className="bike-page">
+      <h1 className="page-title">Our Car Collection</h1>
+      <p className="page-subtitle">Choose from our premium selection of cars</p>
+      
+      <div className="bike-grid">
+        {(() => {
+          const prices = cars.map(c => Number(c.price) || 0).filter(n => n > 0).sort((a, b) => a - b);
+          const p25Index = Math.floor(prices.length * 0.25);
+          const p25 = prices.length ? prices[p25Index] : Infinity;
+
+          return cars
+            .map(c => ({ ...c, __score: scoreCar(c) }))
+            .sort((a, b) => b.__score - a.__score)
+            .map((car) => (
+              <CarCard
+                key={car._id}
+                car={car}
+                onAddToCart={onAddToCart}
+                onBookNow={handleBookNow}
+                onCompare={handleCompare}
+                smartDeal={(Number(car.price) || 0) <= p25}
+              />
+            ));
+        })()}
+      </div>
+
+      {selectedCars.length > 0 && (
+        <div className="comparison-section">
+          <h2>Car Comparison</h2>
+          <div className="comparison-grid">
+            {selectedCars.map((car) => (
+              <div key={car._id} className="comparison-card">
+                <img src={car.image} alt={car.name} />
+                <h3>{car.name}</h3>
+                <div className="comparison-details">
+                  <p><strong>Price:</strong> ₹{car.price}/day</p>
+                  <p><strong>Daily Limit:</strong> {car.limit} km</p>
+                  <p><strong>Seats:</strong> {car.seats}</p>
+                  <p><strong>Fuel Type:</strong> {car.fuel}</p>
+                  <p><strong>Transmission:</strong> {car.transmission}</p>
+                  <p><strong>Type:</strong> {car.type}</p>
+                  <p><strong>AC:</strong> {car.ac ? 'Yes' : 'No'}</p>
+                </div>
+              </div>
+            ))}
+          </div>
+          <button 
+            className="btn btn-clear" 
+            onClick={handleClearComparison}
+          >
+            Clear Comparison
+          </button>
+        </div>
+      )}
+      <SmartAssistant items={cars} kind="car" onBook={handleBookNow} />
+    </div>
+  );
+};
+
+export default CarsPage;
