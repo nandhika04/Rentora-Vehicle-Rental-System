@@ -1,8 +1,78 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
+import axios from 'axios';
+import { useAuth } from './context/AuthContext';
 import './AdminPage.css';
 
 const AdminDashboard = () => {
+  const { user } = useAuth();
+  const [bookings, setBookings] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchBookings = async () => {
+      try {
+        const response = await axios.get('http://localhost:5000/api/bookings');
+        setBookings(response.data.bookings);
+      } catch (error) {
+        console.error('Failed to fetch bookings:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    if (user && (user.role === 'admin' || user.role === 'staff')) {
+      fetchBookings();
+    }
+  }, [user]);
+
+  const pendingPenalties = bookings.filter(b => b.penaltyStatus === 'pending');
+  const paidPenalties = bookings.filter(b => b.penaltyStatus === 'paid');
+  const confirmedBookings = bookings.filter(b => b.status === 'confirmed' && b.preRentalInspection);
+  const activeBookings = bookings.filter(b => b.status === 'active');
+  const pendingReturns = bookings.filter(b => b.status === 'pending_return');
+
+  const handleActivateBooking = async (bookingId) => {
+    try {
+      const response = await axios.patch(`http://localhost:5000/api/bookings/${bookingId}/status`, {
+        status: 'active'
+      });
+
+      if (response.data.success) {
+        // Refresh bookings list
+        const bookingsResponse = await axios.get('http://localhost:5000/api/bookings');
+        setBookings(bookingsResponse.data.bookings);
+        alert('Booking activated successfully! Customer can now return the vehicle.');
+      } else {
+        alert('Failed to activate booking: ' + response.data.message);
+      }
+    } catch (error) {
+      alert('Error activating booking: ' + (error.response?.data?.message || error.message));
+    }
+  };
+
+  const handleMarkPenaltyPaid = async (bookingId) => {
+    try {
+      // Get the post-rental inspection report ID
+      const booking = bookings.find(b => b._id === bookingId);
+      if (!booking || !booking.postRentalInspection) {
+        alert('No post-rental inspection found for this booking.');
+        return;
+      }
+
+      const reportId = booking.postRentalInspection._id;
+
+      const response = await axios.patch(`http://localhost:5000/api/damage-reports/${reportId}/admin-mark-paid`);
+
+      // Refresh bookings list
+      const bookingsResponse = await axios.get('http://localhost:5000/api/bookings');
+      setBookings(bookingsResponse.data.bookings);
+      alert('Penalty marked as paid successfully!');
+    } catch (error) {
+      alert('Error marking penalty as paid: ' + (error.response?.data?.message || error.message));
+    }
+  };
+
   return (
     <div className="admin-dashboard-page">
       <div className="container">
@@ -13,16 +83,16 @@ const AdminDashboard = () => {
             <p className="hero-subtitle">Manage your vehicle rental system with powerful tools and insights</p>
             <div className="hero-stats">
               <div className="stat-item">
-                <span className="stat-number">150+</span>
-                <span className="stat-label">Total Vehicles</span>
+                <span className="stat-number">{bookings.length}</span>
+                <span className="stat-label">Total Bookings</span>
               </div>
               <div className="stat-item">
-                <span className="stat-number">25+</span>
-                <span className="stat-label">Active Rentals</span>
+                <span className="stat-number">{pendingPenalties.length}</span>
+                <span className="stat-label">Pending Penalties</span>
               </div>
               <div className="stat-item">
-                <span className="stat-number">₹50K+</span>
-                <span className="stat-label">Monthly Revenue</span>
+                <span className="stat-number">₹{paidPenalties.reduce((sum, b) => sum + b.penaltyAmount, 0)}</span>
+                <span className="stat-label">Collected Penalties</span>
               </div>
             </div>
           </div>
@@ -83,6 +153,71 @@ const AdminDashboard = () => {
             </Link>
           </div>
         </div>
+
+        {/* Confirmed Bookings (Ready to Activate) */}
+        {confirmedBookings.length > 0 && (
+          <div className="confirmed-bookings">
+            <h2 className="section-title">🚗 Confirmed Bookings (Ready to Activate)</h2>
+            <p className="section-subtitle">These bookings have pre-inspection completed and are ready for customer pickup</p>
+            <div className="bookings-list">
+              {confirmedBookings.map(booking => (
+                <div key={booking._id} className="booking-item">
+                  <div className="booking-header">
+                    <h4>Booking #{booking.bookingId}</h4>
+                    <span className="booking-status status-confirmed">Pre-inspection Done</span>
+                  </div>
+                  <p>Customer: {booking.customer.username}</p>
+                  <p>Vehicle: {booking.vehicle.name}</p>
+                  <p>Pickup: {new Date(booking.pickupDate).toLocaleDateString()} at {booking.pickupTime}</p>
+                  <button
+                    onClick={() => handleActivateBooking(booking._id)}
+                    className="btn btn-success"
+                    style={{ marginTop: '0.5rem' }}
+                  >
+                    ✅ Activate Booking (Customer Can Return Vehicle)
+                  </button>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Pending Penalties */}
+        {pendingPenalties.length > 0 && (
+          <div className="pending-penalties">
+            <h2 className="section-title">💰 Pending Penalties</h2>
+            <div className="penalties-list">
+              {pendingPenalties.map(booking => (
+                <div key={booking._id} className="penalty-item">
+                  <div className="penalty-header">
+                    <h4>Booking #{booking.bookingId}</h4>
+                    <span className="penalty-amount">₹{booking.penaltyAmount}</span>
+                  </div>
+                  <p>Customer: {booking.customer.username}</p>
+                  <p>Vehicle: {booking.vehicle.name}</p>
+                  <p>Status: {booking.status}</p>
+                  <div style={{ marginTop: '1rem', display: 'flex', gap: '0.5rem' }}>
+                    <button
+                      onClick={() => handleMarkPenaltyPaid(booking._id)}
+                      className="btn btn-success"
+                      style={{ padding: '0.5rem 1rem', fontSize: '0.9rem' }}
+                    >
+                      ✅ Mark as Paid
+                    </button>
+                    <Link
+                      to={`/damage/review`}
+                      state={{ bookingId: booking._id, type: 'post-rental' }}
+                      className="btn btn-secondary"
+                      style={{ padding: '0.5rem 1rem', fontSize: '0.9rem', textDecoration: 'none', display: 'inline-block' }}
+                    >
+                      📋 View Report
+                    </Link>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
 
         {/* Management Tools */}
         <div className="management-section">

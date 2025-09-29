@@ -1,609 +1,493 @@
-import React, { useState, useRef, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { computeImageDiff, classifyDamageType, getPrimaryDamageRegion } from './utils/imageDiff';
-import { callHostedVisionAPI, getAvailableAIServices, validateServiceConfig } from './utils/hostedVision';
-import './bike.css';
+import React, { useRef, useState, useEffect } from 'react';
+import { useLocation, useNavigate } from 'react-router-dom';
+import axios from 'axios';
+import { useAuth } from './context/AuthContext';
+
+// Attractive styles
+const styles = {
+  container: {
+    maxWidth: '500px',
+    margin: '2.5rem auto',
+    background: 'linear-gradient(120deg, #eaf2ff 0%, #f8fafc 100%)',
+    borderRadius: '20px',
+    boxShadow: '0 4px 24px rgba(44,62,80,0.13)',
+    padding: '2.5rem 2rem',
+    textAlign: 'center',
+    fontFamily: 'Poppins, sans-serif',
+  },
+
+  previewImg: {
+    maxWidth: '200px',
+    height: '130px',
+    borderRadius: '12px',
+    boxShadow: '0 2px 12px rgba(44,62,80,0.09)',
+    objectFit: 'cover',
+    background: '#eee',
+    border: '2px solid #377dff',
+  },
+  previewBox: {
+    width: '200px',
+    height: '130px',
+    background: '#f0f0f5',
+    borderRadius: '12px',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    color: '#aaa',
+    fontSize: '1.1rem',
+    border: '2px dashed #b3c6ff',
+  },
+  btn: {
+    background: '#377dff',
+    color: '#fff',
+    border: 'none',
+    borderRadius: '8px',
+    padding: '0.7rem 1.5rem',
+    fontWeight: 600,
+    fontSize: '1rem',
+    cursor: 'pointer',
+    margin: '0.7rem 0.5rem 0.5rem 0',
+    transition: 'background 0.2s, box-shadow 0.2s',
+    boxShadow: '0 2px 8px rgba(44,62,80,0.07)',
+  },
+  btnPrimary: {
+    background: 'linear-gradient(90deg, #4895ef 60%, #377dff 100%)',
+    color: '#fff',
+    border: 'none',
+    borderRadius: '8px',
+    padding: '0.8rem 2rem',
+    fontWeight: 700,
+    fontSize: '1.1rem',
+    cursor: 'pointer',
+    margin: '1.2rem 0 0 0',
+    transition: 'background 0.2s, box-shadow 0.2s',
+    boxShadow: '0 2px 12px rgba(44,62,80,0.09)',
+    letterSpacing: '1px',
+  },
+  detect: {
+    background: 'linear-gradient(90deg, #f8961e 60%, #f72585 100%)',
+    color: '#fff',
+    border: 'none',
+    borderRadius: '8px',
+    padding: '0.7rem 1.5rem',
+    fontWeight: 700,
+    fontSize: '1rem',
+    cursor: 'pointer',
+    margin: '0.7rem 0',
+    transition: 'background 0.2s, box-shadow 0.2s',
+    boxShadow: '0 2px 8px rgba(44,62,80,0.07)',
+    letterSpacing: '0.5px',
+  },
+  result: {
+    margin: '1.2rem 0',
+    color: '#f72585',
+    fontWeight: 700,
+    fontSize: '1.1rem',
+    background: '#fff0f6',
+    borderRadius: '8px',
+    padding: '0.7rem 1rem',
+    border: '1px solid #f8961e',
+    boxShadow: '0 1px 6px rgba(44,62,80,0.07)',
+  },
+  label: {
+    fontWeight: 600,
+    color: '#377dff',
+    marginBottom: '0.3rem',
+    display: 'block',
+    fontSize: '1rem',
+  }
+};
 
 const DamageCapture = () => {
+  const location = useLocation();
   const navigate = useNavigate();
+  const { user } = useAuth();
+
+  const bookingId = location.state?.bookingId;
+  const inspectionType = location.state?.type || 'pre-rental'; // 'pre-rental' or 'post-rental'
+
+  const beforeInputRef = useRef(null);
+  const afterInputRef = useRef(null);
   const [beforeImage, setBeforeImage] = useState(null);
   const [afterImage, setAfterImage] = useState(null);
-  const [beforeCanvas, setBeforeCanvas] = useState(null);
-  const [afterCanvas, setAfterCanvas] = useState(null);
-  const [diffResult, setDiffResult] = useState(null);
-  const [aiResult, setAiResult] = useState(null);
-  const [isProcessing, setIsProcessing] = useState(false);
-  const [selectedAIService, setSelectedAIService] = useState('roboflow');
-  const [damageReport, setDamageReport] = useState({
-    vehicleId: '',
-    vehicleType: 'car',
-    description: '',
-    estimatedCost: '',
-    severity: 'low'
-  });
+  const [beforePreview, setBeforePreview] = useState(null);
+  const [afterPreview, setAfterPreview] = useState(null);
+  const [damageResult, setDamageResult] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [photos, setPhotos] = useState({});
+  const [penaltyAmount, setPenaltyAmount] = useState(0);
+  const [showPenaltySection, setShowPenaltySection] = useState(false);
+  const [repairDetails, setRepairDetails] = useState('');
+  const [savingPenalty, setSavingPenalty] = useState(false);
+  const [penaltySaved, setPenaltySaved] = useState(false);
 
-  const beforeCanvasRef = useRef(null);
-  const afterCanvasRef = useRef(null);
-  const diffCanvasRef = useRef(null);
-  const beforeFileInputRef = useRef(null);
-  const afterFileInputRef = useRef(null);
-
-  const availableServices = getAvailableAIServices();
-
-  useEffect(() => {
-    if (beforeCanvasRef.current && afterCanvasRef.current) {
-      setBeforeCanvas(beforeCanvasRef.current);
-      setAfterCanvas(afterCanvasRef.current);
-    }
-  }, []);
-
-  const handleImageUpload = (file, type) => {
-    if (!file) return;
-    
-    const canvas = type === 'before' ? beforeCanvasRef.current : afterCanvasRef.current;
-    if (!canvas) return;
-
-    const ctx = canvas.getContext('2d');
-    const img = new Image();
-    
-    img.onload = () => {
-      // Set canvas dimensions to match image
-      canvas.width = img.width;
-      canvas.height = img.height;
-      
-      // Clear canvas and draw image
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
-      ctx.drawImage(img, 0, 0);
-      
-      if (type === 'before') {
-        setBeforeImage(file);
-        setBeforeCanvas(canvas);
-      } else {
-        setAfterImage(file);
-        setAfterCanvas(canvas);
-      }
-    };
-    
-    img.src = URL.createObjectURL(file);
-  };
-
-  const handleCanvasClick = (type) => {
-    // Trigger file input when canvas is clicked
-    if (type === 'before') {
-      beforeFileInputRef.current?.click();
-    } else {
-      afterFileInputRef.current?.click();
-    }
-  };
-
-  const handleFileInputChange = (e, type) => {
-    const file = e.target.files?.[0];
+  const handleFileChange = (e) => {
+    const file = e.target.files[0];
     if (file) {
-      handleImageUpload(file, type);
-    }
-  };
-
-  const handleComputeDiff = () => {
-    if (!beforeCanvas || !afterCanvas) {
-      alert('Please upload both before and after images');
-      return;
-    }
-
-    setIsProcessing(true);
-    
-    try {
-      const result = computeImageDiff(beforeCanvas, afterCanvas);
-      
-      // Classify damage types for each region
-      const classifiedRegions = result.regions.map(region => ({
-        ...region,
-        classification: classifyDamageType(region)
-      }));
-      
-      const finalResult = {
-        ...result,
-        regions: classifiedRegions
-      };
-      
-      setDiffResult(finalResult);
-      
-      // Draw the diff result on the diff canvas
-      if (diffCanvasRef.current && result.diffCanvas) {
-        const diffCtx = diffCanvasRef.current.getContext('2d');
-        diffCanvasRef.current.width = result.diffCanvas.width;
-        diffCanvasRef.current.height = result.diffCanvas.height;
-        
-        // Clear the canvas first
-        diffCtx.clearRect(0, 0, diffCanvasRef.current.width, diffCanvasRef.current.height);
-        
-        // Draw the diff image
-        diffCtx.drawImage(result.diffCanvas, 0, 0);
-        
-        // Draw bounding boxes around detected regions
-        if (classifiedRegions.length > 0) {
-          diffCtx.strokeStyle = '#00ff00';
-          diffCtx.lineWidth = 3;
-          diffCtx.font = '16px Arial';
-          diffCtx.fillStyle = '#00ff00';
-          
-          classifiedRegions.forEach((region, index) => {
-            const { boundingBox } = region;
-            if (boundingBox) {
-              // Draw rectangle around damage
-              diffCtx.strokeRect(
-                boundingBox.minX, 
-                boundingBox.minY, 
-                boundingBox.width, 
-                boundingBox.height
-              );
-              
-              // Add label
-              const label = `${region.classification.type} ${index + 1}`;
-              const textWidth = diffCtx.measureText(label).width;
-              
-              // Background for text
-              diffCtx.fillStyle = 'rgba(0, 0, 0, 0.7)';
-              diffCtx.fillRect(
-                boundingBox.minX, 
-                boundingBox.minY - 25, 
-                textWidth + 10, 
-                25
-              );
-              
-              // Text
-              diffCtx.fillStyle = '#ffffff';
-              diffCtx.fillText(
-                label, 
-                boundingBox.minX + 5, 
-                boundingBox.minY - 8
-              );
-            }
-          });
-        }
-      }
-      
-    } catch (error) {
-      console.error('Error computing diff:', error);
-      alert('Error computing image difference');
-    } finally {
-      setIsProcessing(false);
-    }
-  };
-
-  const handleAIDetect = async () => {
-    if (!afterImage) {
-      alert('Please upload an after image for AI analysis');
-      return;
-    }
-
-    if (!validateServiceConfig(selectedAIService)) {
-      alert(`Please configure ${selectedAIService} API key in your environment variables`);
-      return;
-    }
-
-    setIsProcessing(true);
-    
-    try {
-      const result = await callHostedVisionAPI(afterImage, {
-        service: selectedAIService,
-        confidence: 0.6
+      console.log('Uploading inspection image:', file.name);
+      const previewUrl = URL.createObjectURL(file);
+      setPhotos({
+        main: { file, previewUrl }
       });
-      
-      setAiResult(result);
-      
-      // Update damage report with AI findings
-      if (result.damageDetected) {
-        setDamageReport(prev => ({
-          ...prev,
-          severity: result.confidence > 0.8 ? 'high' : result.confidence > 0.6 ? 'medium' : 'low',
-          description: `${prev.description} ${result.message}`.trim()
-        }));
-      }
-      
-    } catch (error) {
-      console.error('AI detection error:', error);
-      alert(`AI detection failed: ${error.message}`);
-    } finally {
-      setIsProcessing(false);
+      console.log('Photo uploaded successfully');
     }
   };
 
-  const handleSaveReport = () => {
-    if (!diffResult && !aiResult) {
-      alert('Please compute damage detection first');
+  // Debug component initialization
+  useEffect(() => {
+    console.log('DamageCapture component initialized');
+    console.log('Inspection type:', inspectionType);
+    console.log('Booking ID:', bookingId);
+  }, [inspectionType, bookingId]);
+
+  // Simulate AI damage detection (replace with real API call as needed)
+  const handleDetectDamage = async () => {
+    if (!photos.main) {
+      alert('Please upload an inspection photo first');
       return;
     }
 
-    const report = {
-      id: Date.now().toString(),
-      timestamp: new Date().toISOString(),
-      ...damageReport,
-      beforeImage: beforeImage ? URL.createObjectURL(beforeImage) : null,
-      afterImage: afterImage ? URL.createObjectURL(afterImage) : null,
-      diffResult,
-      aiResult,
-      status: 'pending_review'
-    };
+    setLoading(true);
+    setDamageResult('');
+    setShowPenaltySection(false);
+    setPenaltyAmount(0);
 
-    // Save to localStorage
-    const existingReports = JSON.parse(localStorage.getItem('damageReports') || '[]');
-    existingReports.push(report);
-    localStorage.setItem('damageReports', JSON.stringify(existingReports));
+    // Simulate AI analysis
+    setTimeout(() => {
+      // Mock AI analysis - in real app, send images to AI service
+      const hasDamage = Math.random() > 0.7;
+      const mockAnalysis = {
+        detectedDamages: hasDamage ? [{
+          location: 'vehicle exterior',
+          description: 'Scratches and minor dents',
+          severity: 'moderate'
+        }] : [],
+        overallAssessment: hasDamage ? 'Damage detected requiring repair' : 'No significant damage detected'
+      };
 
-    alert('Damage report saved successfully!');
-    navigate('/damage/review');
+      setDamageResult(mockAnalysis.overallAssessment);
+
+      // For post-rental inspections, calculate penalty if damage detected
+      if (inspectionType === 'post-rental' && hasDamage) {
+        const calculatedPenalty = Math.floor(Math.random() * 5000) + 1000; // Random penalty between 1000-6000
+        setPenaltyAmount(calculatedPenalty);
+        setRepairDetails('Estimated repair cost for scratches and minor dents');
+        setShowPenaltySection(true);
+      }
+
+      setLoading(false);
+    }, 2000);
   };
 
-  const getSeverityColor = (severity) => {
-    switch (severity) {
-      case 'high': return '#dc3545';
-      case 'medium': return '#ffc107';
-      case 'low': return '#28a745';
-      default: return '#6c757d';
+  // Save damage report to backend
+  const handleSaveReport = async (e) => {
+    e.preventDefault();
+
+    // Validation
+    if (!bookingId) {
+      alert('No booking selected. Please restart the inspection process.');
+      return;
+    }
+
+    if (!user) {
+      alert('Please login to save the inspection report.');
+      return;
+    }
+
+    if (!photos.main) {
+      alert('Please upload an inspection photo first.');
+      return;
+    }
+
+    if (!damageResult) {
+      alert('Please analyze the damage before saving the report.');
+      return;
+    }
+
+    try {
+      // Prepare photo data for single image
+      const photoData = [{
+        angle: 'main',
+        url: photos.main.previewUrl // In production, upload to cloud storage first
+      }];
+
+      const reportData = {
+        bookingId,
+        type: inspectionType,
+        photos: photoData
+      };
+
+      console.log('Sending damage report data:', reportData);
+
+      const response = await axios.post('http://localhost:5000/api/damage-reports', reportData);
+
+      if (response.data.success && response.data.damageReport) {
+        const reportId = response.data.damageReport._id;
+
+        // For post-rental inspections with penalty, save penalty details
+        if (inspectionType === 'post-rental' && penaltyAmount > 0) {
+          await handleSavePenaltyDetails(reportId);
+        }
+
+        alert('Damage report saved successfully!');
+        if (inspectionType === 'post-rental' && penaltyAmount > 0) {
+          setPenaltySaved(true);
+        } else {
+          navigate('/profile'); // Redirect to profile to view reports
+        }
+      } else {
+        throw new Error(response.data.message || 'Damage report creation failed');
+      }
+    } catch (error) {
+      console.error('Save report failed:', error);
+      const errorMessage = error.response?.data?.message ||
+                          error.message ||
+                          'Failed to save report. Please try again.';
+      alert(errorMessage);
     }
   };
 
-  const getSeverityText = (score) => {
-    if (score >= 70) return 'High';
-    if (score >= 40) return 'Medium';
-    return 'Low';
+  // Save penalty details for post-rental inspections
+  const handleSavePenaltyDetails = async (reportId) => {
+    try {
+      setSavingPenalty(true);
+
+      const reviewData = {
+        confirmedDamages: [{
+          location: 'vehicle exterior',
+          description: repairDetails,
+          severity: 'moderate'
+        }],
+        totalRepairCost: penaltyAmount,
+        notes: `Post-rental inspection completed. Damage detected: ${repairDetails}. Penalty amount: ₹${penaltyAmount}`
+      };
+
+      const response = await axios.patch(`http://localhost:5000/api/damage-reports/${reportId}/review`, reviewData);
+
+      console.log('Penalty details saved:', response.data);
+      setSavingPenalty(false);
+    } catch (error) {
+      console.error('Failed to save penalty details:', error);
+      setSavingPenalty(false);
+      alert('Report saved but penalty details could not be processed.');
+    }
+  };
+
+  // Handle penalty payment (admin only)
+  const handleMarkPenaltyPaid = async () => {
+    if (!bookingId) {
+      alert('No booking selected.');
+      return;
+    }
+
+    try {
+      // Get the booking details to find the post-rental inspection
+      const bookingResponse = await axios.get(`http://localhost:5000/api/bookings/${bookingId}`);
+      const booking = bookingResponse.data.booking;
+
+      if (!booking.postRentalInspection) {
+        alert('No post-rental inspection found for this booking.');
+        return;
+      }
+
+      const postRentalInspectionId = booking.postRentalInspection._id;
+
+      // Admin marks penalty as paid using admin endpoint
+      const response = await axios.patch(`http://localhost:5000/api/damage-reports/${postRentalInspectionId}/admin-mark-paid`);
+
+      alert('Penalty marked as paid successfully!');
+      navigate('/admindashboard'); // Redirect to admin dashboard
+    } catch (error) {
+      console.error('Failed to mark penalty as paid:', error);
+      const errorMessage = error.response?.data?.message || 'Failed to mark penalty as paid. Please try again.';
+      alert(errorMessage);
+    }
   };
 
   return (
-    <div className="damage-capture-page">
-      <div className="container">
-        <h1 className="page-title">Vehicle Damage Detection</h1>
-        <p className="page-subtitle">Capture before and after images to detect damage automatically</p>
+    <div style={styles.container}>
 
-        <div className="capture-grid">
-          {/* Before Image */}
-          <div className="image-section">
-            <h3>Before Image</h3>
-            <div className="image-upload-area">
-              <canvas
-                ref={beforeCanvasRef}
-                className="image-canvas"
-                style={{ 
-                  border: '2px dashed #ccc',
-                  cursor: 'pointer',
-                  backgroundColor: '#f8f9fa'
-                }}
-                onClick={() => handleCanvasClick('before')}
-                title="Click to upload before image"
-              />
-              <input
-                ref={beforeFileInputRef}
-                type="file"
-                accept="image/*"
-                onChange={(e) => handleFileInputChange(e, 'before')}
-                className="image-input"
-                style={{ display: 'none' }}
-              />
-              <p className="upload-hint">Click the canvas above to upload before image</p>
-            </div>
-          </div>
+      <h2 style={{ color: '#377dff', fontWeight: 800, marginBottom: '0.5rem' }}>
+        {inspectionType === 'pre-rental' ? 'Pre-Rental Inspection' : 'Post-Rental Inspection'}
+      </h2>
+      <p style={{ color: '#4a5568', marginBottom: '1.5rem' }}>
+        Take a photo of the vehicle for inspection. Our AI will analyze and detect any damage automatically.
+      </p>
 
-          {/* After Image */}
-          <div className="image-section">
-            <h3>After Image</h3>
-            <div className="image-upload-area">
-              <canvas
-                ref={afterCanvasRef}
-                className="image-canvas"
-                style={{ 
-                  border: '2px dashed #ccc',
-                  cursor: 'pointer',
-                  backgroundColor: '#f8f9fa'
-                }}
-                onClick={() => handleCanvasClick('after')}
-                title="Click to upload after image"
-              />
-              <input
-                ref={afterFileInputRef}
-                type="file"
-                accept="image/*"
-                onChange={(e) => handleFileInputChange(e, 'after')}
-                className="image-input"
-                style={{ display: 'none' }}
-              />
-              <p className="upload-hint">Click the canvas above to upload after image</p>
-            </div>
+      <div style={{ textAlign: 'center', marginBottom: '2rem' }}>
+        <label style={styles.label}>
+          Vehicle Inspection Photo
+          {photos.main && <span style={{ color: '#10b981', marginLeft: '0.5rem' }}>✓</span>}
+        </label>
+
+        {photos.main ? (
+          <div style={{ marginTop: '1rem' }}>
+            <img
+              src={photos.main.previewUrl}
+              alt="Vehicle inspection"
+              style={{...styles.previewImg, width: '300px', height: '200px', margin: '0 auto'}}
+            />
           </div>
+        ) : (
+          <div style={{...styles.previewBox, width: '300px', height: '200px', margin: '1rem auto'}}>
+            No inspection photo uploaded
+          </div>
+        )}
+
+        <input
+          type="file"
+          accept="image/*"
+          capture="environment"
+          style={{ display: 'none' }}
+          onChange={handleFileChange}
+          ref={beforeInputRef}
+        />
+
+        <button
+          type="button"
+          style={styles.btn}
+          onClick={() => beforeInputRef.current?.click()}
+        >
+          📷 {photos.main ? 'Retake Photo' : 'Take Inspection Photo'}
+        </button>
+      </div>
+
+      <button
+        type="button"
+        style={styles.detect}
+        onClick={handleDetectDamage}
+        disabled={!photos.main || loading}
+      >
+        {loading ? 'Analyzing...' : 'Analyze Damage'}
+      </button>
+
+      {damageResult && (
+        <div style={styles.result}>
+          {damageResult}
         </div>
+      )}
 
-        {/* Control Buttons */}
-        <div className="control-buttons">
-          <button
-            onClick={handleComputeDiff}
-            disabled={!beforeImage || !afterImage || isProcessing}
-            className="btn btn-primary"
-          >
-            {isProcessing ? 'Processing...' : 'Detect Damage'}
-          </button>
+      {/* Penalty Section for Post-Rental Inspections */}
+      {showPenaltySection && (
+        <div style={{
+          background: 'linear-gradient(120deg, #ffeaa7 0%, #fab1a0 100%)',
+          borderRadius: '12px',
+          padding: '1.5rem',
+          margin: '1.5rem 0',
+          border: '2px solid #e17055',
+          boxShadow: '0 4px 12px rgba(225, 112, 85, 0.2)'
+        }}>
+          <h3 style={{
+            color: '#d63031',
+            fontWeight: 800,
+            marginBottom: '1rem',
+            textAlign: 'center',
+            fontSize: '1.3rem'
+          }}>
+            🚨 Damage Penalty Assessment
+          </h3>
 
-          {availableServices.length > 0 && (
-            <div className="ai-controls">
-              <select
-                value={selectedAIService}
-                onChange={(e) => setSelectedAIService(e.target.value)}
-                className="ai-service-select"
-              >
-                {availableServices.map(service => (
-                  <option key={service} value={service}>
-                    {service.charAt(0).toUpperCase() + service.slice(1)} AI
-                  </option>
-                ))}
-              </select>
-              <button
-                onClick={handleAIDetect}
-                disabled={!afterImage || isProcessing}
-                className="btn btn-secondary"
-              >
-                {isProcessing ? 'AI Analyzing...' : 'AI Detect'}
-              </button>
+          <div style={{
+            background: '#fff',
+            borderRadius: '8px',
+            padding: '1rem',
+            marginBottom: '1rem',
+            border: '1px solid #ddd'
+          }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
+              <span style={{ fontWeight: 600, color: '#2d3436' }}>Penalty Amount:</span>
+              <span style={{
+                fontSize: '1.5rem',
+                fontWeight: 800,
+                color: '#d63031'
+              }}>
+                ₹{penaltyAmount.toLocaleString()}
+              </span>
+            </div>
+            <div style={{ color: '#636e72', fontSize: '0.9rem' }}>
+              <strong>Details:</strong> {repairDetails}
+            </div>
+          </div>
+
+          {savingPenalty && (
+            <div style={{
+              background: '#ffeaa7',
+              color: '#d63031',
+              padding: '0.5rem',
+              borderRadius: '4px',
+              textAlign: 'center',
+              marginBottom: '1rem'
+            }}>
+              💾 Saving penalty details...
+            </div>
+          )}
+
+          {penaltySaved && (
+            <div style={{
+              background: '#55efc4',
+              color: '#00b894',
+              padding: '0.5rem',
+              borderRadius: '4px',
+              textAlign: 'center',
+              marginBottom: '1rem'
+            }}>
+              ✅ Penalty details saved successfully!
+            </div>
+          )}
+
+          {/* Payment Section for Admins */}
+          {user && (user.role === 'admin' || user.role === 'staff') && penaltySaved && (
+            <div style={{
+              background: '#a29bfe',
+              borderRadius: '8px',
+              padding: '1rem',
+              marginTop: '1rem'
+            }}>
+              <h4 style={{ color: '#6c5ce7', marginBottom: '0.5rem', fontWeight: 700 }}>
+                💰 Payment Management
+              </h4>
+              <p style={{ color: '#a29bfe', marginBottom: '1rem', fontSize: '0.9rem' }}>
+                Customer needs to pay ₹{penaltyAmount.toLocaleString()} for vehicle damage
+              </p>
+              <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'center' }}>
+                <button
+                  type="button"
+                  style={{
+                    ...styles.btn,
+                    background: '#00b894',
+                    flex: 1
+                  }}
+                  onClick={handleMarkPenaltyPaid}
+                >
+                  ✅ Mark as Paid
+                </button>
+                <button
+                  type="button"
+                  style={{
+                    ...styles.btn,
+                    background: '#fdcb6e',
+                    color: '#2d3436',
+                    flex: 1
+                  }}
+                  onClick={() => navigate('/admindashboard')}
+                >
+                  📊 Back to Dashboard
+                </button>
+              </div>
             </div>
           )}
         </div>
+      )}
 
-        {/* Results Display */}
-        {diffResult && (
-          <div className="results-section">
-            <h3>Damage Detection Results</h3>
-            
-            {/* Severity Score */}
-            <div className="severity-display">
-              <div className="severity-score">
-                <span className="score-label">Severity Score:</span>
-                <span 
-                  className="score-value"
-                  style={{ color: getSeverityColor(getSeverityText(diffResult.severityScore).toLowerCase()) }}
-                >
-                  {diffResult.severityScore}/100
-                </span>
-                <span className="severity-level">
-                  ({getSeverityText(diffResult.severityScore)})
-                </span>
-              </div>
-              <div className="damage-percentage">
-                Damage Area: {diffResult.damagePercentage.toFixed(2)}%
-              </div>
-            </div>
-
-            {/* Diff Canvas */}
-            <div className="diff-display">
-              <h4>Damage Visualization</h4>
-              <div className="canvas-container">
-                <canvas
-                  ref={diffCanvasRef}
-                  className="diff-canvas"
-                  style={{
-                    maxWidth: '100%',
-                    border: '1px solid #ddd',
-                    borderRadius: '8px'
-                  }}
-                />
-              </div>
-            </div>
-
-            {/* Damage Regions */}
-            <div className="damage-regions">
-              <h4>Damage Analysis Summary</h4>
-              <div className="damage-summary">
-                <div className="summary-item">
-                  <span className="summary-label">Total Damage Regions:</span>
-                  <span className="summary-value">{diffResult.regions.length}</span>
-                </div>
-                <div className="summary-item">
-                  <span className="summary-label">Primary Damage Type:</span>
-                  <span className="summary-value">
-                    {diffResult.regions.length > 0 
-                      ? diffResult.regions[0].classification.type.replace('_', ' ')
-                      : 'None detected'
-                    }
-                  </span>
-                </div>
-                <div className="summary-item">
-                  <span className="summary-label">Largest Region:</span>
-                  <span className="summary-value">
-                    {diffResult.regions.length > 0 
-                      ? `${diffResult.regions[0].area} pixels`
-                      : 'N/A'
-                    }
-                  </span>
-                </div>
-                <div className="summary-item">
-                  <span className="summary-label">Average Severity:</span>
-                  <span className="summary-value">
-                    {diffResult.regions.length > 0 
-                      ? Math.round(diffResult.regions.reduce((sum, r) => sum + r.severity, 0) / diffResult.regions.length)
-                      : 'N/A'
-                    }
-                  </span>
-                </div>
-              </div>
-              
-              {/* Show only significant regions (max 5) */}
-              {diffResult.regions.length > 0 && diffResult.regions.length <= 5 && (
-                <div className="regions-detail">
-                  <h5>Detected Damage Details:</h5>
-                  <div className="regions-grid">
-                    {diffResult.regions.map((region, index) => (
-                      <div key={index} className="region-card">
-                        <div className="region-header">
-                          <span className="region-number">#{index + 1}</span>
-                          <span className="damage-type">
-                            {region.classification.type.replace('_', ' ')}
-                          </span>
-                        </div>
-                        <div className="region-details">
-                          <p>Area: {region.area} pixels</p>
-                          <p>Severity: {Math.round(region.severity)}</p>
-                          <p>Confidence: {region.classification.confidence}%</p>
-                          <p className="damage-description">
-                            {region.classification.description}
-                          </p>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
-              
-              {/* Show summary for many regions */}
-              {diffResult.regions.length > 5 && (
-                <div className="regions-summary">
-                  <p className="summary-note">
-                    <strong>Note:</strong> {diffResult.regions.length} damage regions detected. 
-                    Showing top 5 most significant regions. All regions are included in the damage report.
-                  </p>
-                  <div className="regions-grid">
-                    {diffResult.regions.slice(0, 5).map((region, index) => (
-                      <div key={index} className="region-card">
-                        <div className="region-header">
-                          <span className="region-number">#{index + 1}</span>
-                          <span className="damage-type">
-                            {region.classification.type.replace('_', ' ')}
-                          </span>
-                        </div>
-                        <div className="region-details">
-                          <p>Area: {region.area} pixels</p>
-                          <p>Severity: {Math.round(region.severity)}</p>
-                          <p>Confidence: {region.classification.confidence}%</p>
-                          <p className="damage-description">
-                            {region.classification.description}
-                          </p>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
-            </div>
-          </div>
-        )}
-
-        {/* AI Results */}
-        {aiResult && (
-          <div className="ai-results-section">
-            <h3>AI Analysis Results</h3>
-            <div className="ai-result-card">
-              <div className="ai-source">
-                <span className="source-label">AI Service:</span>
-                <span className="source-name">{aiResult.source}</span>
-              </div>
-              <div className="ai-message">{aiResult.message}</div>
-              <div className="ai-confidence">
-                Confidence: {(aiResult.confidence * 100).toFixed(1)}%
-              </div>
-              
-              {aiResult.regions.length > 0 && (
-                <div className="ai-regions">
-                  <h4>AI Detected Regions:</h4>
-                  <div className="ai-regions-list">
-                    {aiResult.regions.map((region, index) => (
-                      <div key={index} className="ai-region-item">
-                        <span className="region-type">{region.type}</span>
-                        <span className="region-confidence">
-                          {(region.confidence * 100).toFixed(1)}%
-                        </span>
-                        {region.description && (
-                          <span className="region-description">{region.description}</span>
-                        )}
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
-            </div>
-          </div>
-        )}
-
-        {/* Damage Report Form */}
-        <div className="damage-report-form">
-          <h3>Damage Report Details</h3>
-          <div className="form-grid">
-            <div className="form-group">
-              <label>Vehicle ID:</label>
-              <input
-                type="text"
-                value={damageReport.vehicleId}
-                onChange={(e) => setDamageReport(prev => ({...prev, vehicleId: e.target.value}))}
-                placeholder="Enter vehicle ID"
-              />
-            </div>
-            
-            <div className="form-group">
-              <label>Vehicle Type:</label>
-              <select
-                value={damageReport.vehicleType}
-                onChange={(e) => setDamageReport(prev => ({...prev, vehicleType: e.target.value}))}
-              >
-                <option value="car">Car</option>
-                <option value="bike">Bike</option>
-                <option value="suv">SUV</option>
-                <option value="truck">Truck</option>
-              </select>
-            </div>
-            
-            <div className="form-group">
-              <label>Description:</label>
-              <textarea
-                value={damageReport.description}
-                onChange={(e) => setDamageReport(prev => ({...prev, description: e.target.value}))}
-                placeholder="Describe the damage..."
-                rows="3"
-              />
-            </div>
-            
-            <div className="form-group">
-              <label>Estimated Cost (₹):</label>
-              <input
-                type="number"
-                value={damageReport.estimatedCost}
-                onChange={(e) => setDamageReport(prev => ({...prev, estimatedCost: e.target.value}))}
-                placeholder="Enter estimated repair cost"
-              />
-            </div>
-            
-            <div className="form-group">
-              <label>Severity Level:</label>
-              <select
-                value={damageReport.severity}
-                onChange={(e) => setDamageReport(prev => ({...prev, severity: e.target.value}))}
-              >
-                <option value="low">Low</option>
-                <option value="medium">Medium</option>
-                <option value="high">High</option>
-              </select>
-            </div>
-          </div>
-        </div>
-
-        {/* Action Buttons */}
-        <div className="action-buttons">
-          <button
-            onClick={handleSaveReport}
-            disabled={!diffResult && !aiResult}
-            className="btn btn-success"
-          >
-            Save Damage Report
-          </button>
-          
-          <button
-            onClick={() => navigate('/damage/review')}
-            className="btn btn-info"
-          >
-            View All Reports
-          </button>
-          
-          <button
-            onClick={() => navigate('/')}
-            className="btn btn-secondary"
-          >
-            Back to Home
-          </button>
-        </div>
-      </div>
+      <form onSubmit={handleSaveReport}>
+        <button
+          type="submit"
+          style={styles.btnPrimary}
+          disabled={savingPenalty}
+        >
+          {savingPenalty ? '💾 Saving Report...' : 'Save Inspection Report'}
+        </button>
+      </form>
     </div>
   );
 };

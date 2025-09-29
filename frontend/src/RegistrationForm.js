@@ -1,7 +1,7 @@
-import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import React, { useState, useEffect } from 'react';
+import { useNavigate, useLocation } from 'react-router-dom';
+import { useAuth } from './context/AuthContext';
 import './RegistrationForm.css';
-import axios from 'axios';
 
 const RegistrationForm = () => {
   const [formData, setFormData] = useState({
@@ -12,8 +12,17 @@ const RegistrationForm = () => {
   });
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const { register, isAuthenticated, user } = useAuth();
   const navigate = useNavigate();
-  const back = process.env.REACT_APP_BACKEND_URL;
+  const location = useLocation();
+
+  // Redirect if already authenticated
+  useEffect(() => {
+    if (isAuthenticated) {
+      const from = location.state?.from?.pathname || '/';
+      navigate(from, { replace: true });
+    }
+  }, [isAuthenticated, navigate, location]);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -48,24 +57,26 @@ const RegistrationForm = () => {
     }
 
     try {
-      const response = await axios.post(`${back}/register`, {
-        username: formData.username,
-        email: formData.email,
-        password: formData.password
-      });
+      const result = await register(
+        formData.username,
+        formData.email,
+        formData.password,
+        formData.confirmPassword
+      );
       
-      if (response.data.error) {
-        setError(response.data.message);
-      } else {
-        // Check if admin login
-        if (formData.email === "admin@gmail.com") {
-          navigate("/admin");
+      if (result.success) {
+        // Redirect based on user role
+        const from = location.state?.from?.pathname || '/';
+        if (result.user.role === 'admin') {
+          navigate('/admindashboard', { replace: true });
         } else {
-          navigate("/login"); // Redirect to login after successful registration
+          navigate(from, { replace: true });
         }
+      } else {
+        setError(result.message);
       }
     } catch (err) {
-      setError(err.response?.data?.message || 'Registration failed. Please try again.');
+      setError('Registration failed. Please try again.');
     } finally {
       setIsLoading(false);
     }

@@ -26,9 +26,13 @@ import AdminPagecar from './CarAdminPage';
 import AdminDashboard from './AdminDashboard';
 import Bform from './Bform';
 import { FavoritesProvider } from './context/FavoritesContext';
+import { AuthProvider } from './context/AuthContext';
+import ProtectedRoute from './components/ProtectedRoute';
 import Wishlist from './Wishlist';
 import DamageCapture from './DamageCapture';
 import DamageReview from './DamageReview';
+import Profile from './Profile';
+import StaffDashboard from './StaffDashboard';
 
 const MainAppContent = () => {
   const [cartItems, setCartItems] = useState(() => {
@@ -83,12 +87,46 @@ const MainAppContent = () => {
           <Route path="/wishlist" element={<Wishlist />} />
           <Route path="/registration" element={<RegistrationForm />} />
           <Route path="/login" element={<LoginForm />} />
-          <Route path="/admindashboard" element={<AdminDashboard />} />
-          <Route path="/admin" element={<AdminPage />} />
-          <Route path="/admincar" element={<AdminPagecar />} />
-          <Route path="/booking" element={<Bform />} />
-          <Route path="/damage/capture" element={<DamageCapture />} />
-          <Route path="/damage/review" element={<DamageReview />} />
+          <Route path="/admindashboard" element={
+            <ProtectedRoute requireAdmin={true}>
+              <AdminDashboard />
+            </ProtectedRoute>
+          } />
+          <Route path="/admin" element={
+            <ProtectedRoute requireAdmin={true}>
+              <AdminPage />
+            </ProtectedRoute>
+          } />
+          <Route path="/admincar" element={
+            <ProtectedRoute requireAdmin={true}>
+              <AdminPagecar />
+            </ProtectedRoute>
+          } />
+          <Route path="/booking" element={
+            <ProtectedRoute>
+              <Bform />
+            </ProtectedRoute>
+          } />
+          <Route path="/damage/capture" element={
+            <ProtectedRoute requireAdmin={true}>
+              <DamageCapture />
+            </ProtectedRoute>
+          } />
+          <Route path="/damage/review" element={
+            <ProtectedRoute requireAdmin={true}>
+              <DamageReview />
+            </ProtectedRoute>
+          } />
+          <Route path="/profile" element={
+            <ProtectedRoute>
+              <Profile />
+            </ProtectedRoute>
+          } />
+          <Route path="/staff-dashboard" element={
+            <ProtectedRoute requireStaff={true}>
+              <StaffDashboard />
+            </ProtectedRoute>
+          } />
         </Routes>
       </main>
 
@@ -100,9 +138,11 @@ const MainAppContent = () => {
 
 const App = () => (
   <Router>
-    <FavoritesProvider>
-      <MainAppContent />
-    </FavoritesProvider>
+    <AuthProvider>
+      <FavoritesProvider>
+        <MainAppContent />
+      </FavoritesProvider>
+    </AuthProvider>
   </Router>
 );
 

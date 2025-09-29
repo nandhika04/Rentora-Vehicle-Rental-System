@@ -36,6 +36,10 @@ const carSchema = new mongoose.Schema({
   ac: {
     type: Boolean,
     default: true
+  },
+  availability: {
+    type: Boolean,
+    default: true
   }
 }, {
   timestamps: true

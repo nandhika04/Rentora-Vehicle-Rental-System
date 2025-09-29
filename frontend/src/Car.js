@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import './bike.css';
+import './Car.css';
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
 import CarCard from './CarCard';

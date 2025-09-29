@@ -6,16 +6,18 @@ export const computeImageDiff = (beforeCanvas, afterCanvas, threshold = 30) => {
   const width = beforeCanvas.width;
   const height = beforeCanvas.height;
   
-  // Create a new canvas for the diff
-  const diffCanvas = document.createElement('canvas');
-  diffCanvas.width = width;
-  diffCanvas.height = height;
-  const diffCtx = diffCanvas.getContext('2d');
+  // Create image data for the diff (no canvas needed for visualization)
+  let diffCtx = null;
   
   // Get image data
   const beforeData = beforeCtx.getImageData(0, 0, width, height);
   const afterData = afterCtx.getImageData(0, 0, width, height);
-  const diffData = diffCtx.createImageData(width, height);
+  // Create a temporary canvas context to create image data
+  const tempCanvas = document.createElement('canvas');
+  tempCanvas.width = width;
+  tempCanvas.height = height;
+  const tempCtx = tempCanvas.getContext('2d');
+  const diffData = tempCtx.createImageData(width, height);
   
   const beforePixels = beforeData.data;
   const afterPixels = afterData.data;
@@ -68,8 +70,8 @@ export const computeImageDiff = (beforeCanvas, afterCanvas, threshold = 30) => {
     }
   }
   
-  // Apply the diff data
-  diffCtx.putImageData(diffData, 0, 0);
+  // Apply the diff data to the temporary context
+  tempCtx.putImageData(diffData, 0, 0);
   
   // Enhanced region detection with morphological operations
   const regions = detectDamageRegions(diffMap, width, height);
@@ -78,7 +80,6 @@ export const computeImageDiff = (beforeCanvas, afterCanvas, threshold = 30) => {
   const severityScore = calculateSeverityScore(regions, totalDiffPixels, width * height);
   
   return {
-    diffCanvas,
     regions,
     totalDiffPixels,
     severityScore,
@@ -230,6 +231,28 @@ export const getPrimaryDamageRegion = (regions) => {
   
   // Return largest region
   return regions.reduce((max, r) => r.area > max.area ? r : max);
+};
+
+// Get severity text based on severity score
+export const getSeverityText = (score) => {
+  if (score >= 80) return 'Critical';
+  if (score >= 60) return 'Severe';
+  if (score >= 40) return 'Moderate';
+  if (score >= 20) return 'Minor';
+  return 'Minimal';
+};
+
+// Get severity color based on severity level
+export const getSeverityColor = (level) => {
+  const colors = {
+    'critical': '#ff0000', // Red
+    'severe': '#ff6600',   // Orange
+    'moderate': '#ffcc00', // Yellow
+    'minor': '#66cc00',    // Light Green
+    'minimal': '#009900'   // Green
+  };
+  
+  return colors[level.toLowerCase()] || '#009900';
 };
 
 

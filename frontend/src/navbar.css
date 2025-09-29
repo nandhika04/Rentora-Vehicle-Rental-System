@@ -99,6 +99,91 @@
   font-size: 0.7rem;
 }
 
+/* User Menu Styles */
+.user-menu {
+  position: relative;
+  display: inline-block;
+}
+
+.user-button {
+  background: none;
+  border: 1px solid var(--primary-color);
+  color: var(--primary-color);
+  padding: 0.5rem 1rem;
+  border-radius: 5px;
+  cursor: pointer;
+  font-weight: 500;
+  transition: all 0.3s ease;
+}
+
+.user-button:hover {
+  background-color: var(--primary-color);
+  color: white;
+}
+
+.user-dropdown {
+  position: absolute;
+  top: 100%;
+  right: 0;
+  background: white;
+  border: 1px solid #e0e0e0;
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  min-width: 200px;
+  z-index: 1000;
+  margin-top: 0.5rem;
+}
+
+.user-info {
+  padding: 1rem;
+  border-bottom: 1px solid #e0e0e0;
+}
+
+.user-name {
+  font-weight: 600;
+  color: var(--dark-color);
+  margin: 0 0 0.25rem 0;
+}
+
+.user-email {
+  font-size: 0.9rem;
+  color: #666;
+  margin: 0;
+}
+
+.dropdown-divider {
+  height: 1px;
+  background-color: #e0e0e0;
+  margin: 0;
+}
+
+.dropdown-item {
+  display: block;
+  padding: 0.75rem 1rem;
+  color: var(--dark-color);
+  text-decoration: none;
+  border: none;
+  background: none;
+  width: 100%;
+  text-align: left;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+  font-size: 0.9rem;
+}
+
+.dropdown-item:hover {
+  background-color: #f8f9fa;
+}
+
+.logout-item {
+  color: #dc3545;
+}
+
+.logout-item:hover {
+  background-color: #f8d7da;
+  color: #721c24;
+}
+
 @media (max-width: 768px) {
   .navbar {
     flex-direction: column;

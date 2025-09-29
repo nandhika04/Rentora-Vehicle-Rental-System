@@ -1,7 +1,7 @@
-import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import axios from 'axios';
-import './LoginForm.css'; // Create this CSS file for styling
+import React, { useState, useEffect } from 'react';
+import { useNavigate, useLocation } from 'react-router-dom';
+import { useAuth } from './context/AuthContext';
+import './LoginForm.css';
 
 const LoginForm = () => {
   const [formData, setFormData] = useState({
@@ -10,8 +10,17 @@ const LoginForm = () => {
   });
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const { login, isAuthenticated, user } = useAuth();
   const navigate = useNavigate();
-  const back = process.env.REACT_APP_BACKEND_URL;
+  const location = useLocation();
+
+  // Redirect if already authenticated
+  useEffect(() => {
+    if (isAuthenticated) {
+      const from = location.state?.from?.pathname || '/';
+      navigate(from, { replace: true });
+    }
+  }, [isAuthenticated, navigate, location]);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -34,27 +43,21 @@ const LoginForm = () => {
     }
 
     try {
-      const response = await axios.post(`${back}/login`, {
-        email: formData.email,
-        password: formData.password
-      });
+      const result = await login(formData.email, formData.password);
       
-      if (response.data.error) {
-        setError(response.data.message);
-      } else {
-        // Store the token in localStorage or context
-        localStorage.setItem('token', response.data.token);
-        localStorage.setItem('user', JSON.stringify(response.data.user));
-        
-        // Check if admin login
-        if (formData.email === "admin@gmail.com") {
-          navigate("/admindashboard");
+      if (result.success) {
+        // Redirect based on user role
+        const from = location.state?.from?.pathname || '/';
+        if (result.user.role === 'admin') {
+          navigate('/admindashboard', { replace: true });
         } else {
-          navigate("/");
+          navigate(from, { replace: true });
         }
+      } else {
+        setError(result.message);
       }
     } catch (err) {
-      setError(err.response?.data?.message || 'Login failed. Please try again.');
+      setError('Login failed. Please try again.');
     } finally {
       setIsLoading(false);
     }

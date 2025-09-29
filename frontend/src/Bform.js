@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
+import axios from 'axios';
+import { useAuth } from './context/AuthContext';
 import './bform.css';
 
 const Bform = () => {
@@ -10,6 +12,7 @@ const Bform = () => {
   const isCar = vehicleTypeFromLocation === 'car' || (!!carFromLocation && !bikeFromLocation);
 
   const selectedVehicle = bikeFromLocation || carFromLocation;
+  const { user } = useAuth();
   
   const [formValues, setFormValues] = useState({
     pickupDate: '',
@@ -31,6 +34,7 @@ const Bform = () => {
 
   const RATE_PER_DAY = bikeDetails.price;
   const navigate = useNavigate();
+  const back = process.env.REACT_APP_BACKEND_URL || 'http://localhost:5000';
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -90,9 +94,48 @@ const Bform = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    if (!user) {
+      alert('Please login to book a vehicle');
+      return;
+    }
     if (validateForm()) {
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      setIsSubmitted(true);
+      try {
+        const vehicleId = selectedVehicle?._id || selectedVehicle?.id;
+        if (!vehicleId) {
+          alert('Vehicle ID not found. Please try selecting the vehicle again.');
+          return;
+        }
+
+        const bookingData = {
+          vehicleId: vehicleId,
+          vehicleType: isCar ? 'car' : 'bike',
+          pickupDate: formValues.pickupDate,
+          pickupTime: formValues.pickupTime,
+          dropoffDate: formValues.dropoffDate,
+          dropoffTime: formValues.dropoffTime,
+          totalCost: estimatedCost
+        };
+
+        console.log('Sending booking data:', bookingData); // Debug log
+
+        const response = await axios.post(`${back}/api/bookings`, bookingData);
+        if (response.data.success && response.data.booking) {
+          setIsSubmitted(true);
+          console.log('Booking successful:', response.data.booking);
+        } else {
+          throw new Error(response.data.message || 'Booking creation failed');
+        }
+      } catch (error) {
+        console.error('Booking failed:', error);
+        console.error('Error response:', error.response);
+        console.error('Error status:', error.response?.status);
+        console.error('Error data:', error.response?.data);
+        const errorMessage = error.response?.data?.message ||
+                           error.response?.data?.error ||
+                           error.message ||
+                           'Booking failed. Please try again.';
+        alert(errorMessage);
+      }
     }
   };
 
